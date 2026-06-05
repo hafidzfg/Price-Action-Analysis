@@ -325,5 +325,3 @@ This skill is not a suggestion pile. Every step — execution mode, analysis for
 - Book 1: Trends (26 chapters) — `book1-trends.md`
 - Book 2: Trading Ranges (32 chapters) — `book2-ranges.md`
 
-**Known Watchlists:**
-- 8898 - 19 APR (10 emiten): TTWO, HIVE, YOII.JK, PTMP.JK, WOLF, NOW, ALII.JK, ENPH, VAL, MX
