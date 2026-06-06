@@ -588,6 +588,138 @@ def detect_patterns(bars: list[dict]) -> dict:
     return patterns
 
 
+def detect_reversal_signals(bars: list[dict], patterns: dict, trend_context: dict | None = None) -> list[str]:
+    """
+    Detect reversal signals that warrant loading reversals.md as an overlay.
+    Returns list of human-readable signal descriptions.
+    These are EVENT signals, not state signals — they indicate the market may be transitioning.
+    """
+    signals = []
+
+    if len(bars) < 10:
+        return signals
+
+    classified = [classify_bar(bars[i], bars[i-1] if i > 0 else None) for i in range(len(bars))]
+
+    # --- 1. Consecutive climaxes (2+ large trend bars with little pullback) ---
+    # Check last 10 bars for sequences of large trend bars
+    climax_count = 0
+    for i in range(max(0, len(bars)-10), len(bars)):
+        c = classified[i]
+        bar_range = bars[i]['high'] - bars[i]['low']
+        # Large trend bar: body >= 75% of range, range > 1.5x average
+        avg_range = sum(b['high'] - b['low'] for b in bars[max(0,i-20):i]) / max(1, min(20, i))
+        if (c['bar_type'] in ('trend_bull', 'trend_bear') and
+            c.get('body_pct', 0) >= 75 and
+            bar_range > avg_range * 1.5):
+            climax_count += 1
+        else:
+            if climax_count >= 2:
+                break
+            climax_count = 0
+    if climax_count >= 3:
+        signals.append(f'consecutive_climaxes_{climax_count}: 3+ consecutive buy/sell climaxes — high probability of 10-bar, two-legged correction')
+    elif climax_count >= 2:
+        signals.append(f'consecutive_climaxes_{climax_count}: 2 consecutive buy/sell climaxes — watch for reversal setup')
+
+    # --- 2. Trend line break (price crosses below/above recent swing structure) ---
+    # Simplified: check if last 5 bars broke through a swing high/low from prior 20 bars
+    if len(bars) >= 25:
+        recent_high = max(b['high'] for b in bars[-5:])
+        recent_low = min(b['low'] for b in bars[-5:])
+        prior_highs = [bars[i]['high'] for i in range(-25, -5)]
+        prior_lows = [bars[i]['low'] for i in range(-25, -5)]
+
+        # Bull trend: higher highs. Break = price goes below prior swing low.
+        if prior_lows:
+            swing_low = min(prior_lows[-10:])  # Recent swing low
+            if recent_low < swing_low:
+                signals.append('trend_line_break_bear: price broke below recent swing low — potential bear trend line break')
+
+        # Bear trend: lower lows. Break = price goes above prior swing high.
+        if prior_highs:
+            swing_high = max(prior_highs[-10:])  # Recent swing high
+            if recent_high > swing_high:
+                signals.append('trend_line_break_bull: price broke above recent swing high — potential bull trend line break')
+
+    # --- 3. Wedge overshoot (wedge detected AND price beyond trend channel) ---
+    if patterns.get('wedge_top'):
+        # Check if last bar exceeded a prior swing high by a small amount (1-tick overshoot)
+        if len(bars) >= 5:
+            prior_swing = max(b['high'] for b in bars[-10:-3]) if len(bars) >= 10 else 0
+            if bars[-1]['high'] > prior_swing and bars[-1]['high'] - prior_swing < prior_swing * 0.005:
+                signals.append('wedge_overshoot_top: wedge top with trend channel line overshoot — reversal likely')
+
+    if patterns.get('wedge_bottom'):
+        if len(bars) >= 5:
+            prior_swing = min(b['low'] for b in bars[-10:-3]) if len(bars) >= 10 else float('inf')
+            if bars[-1]['low'] < prior_swing and prior_swing - bars[-1]['low'] < prior_swing * 0.005:
+                signals.append('wedge_overshoot_bottom: wedge bottom with trend channel line overshoot — reversal likely')
+
+    # --- 4. Final flag (horizontal flag after protracted trend) ---
+    # Check for 5+ overlapping bars after a strong trend
+    if len(bars) >= 15:
+        # Check if prior 10 bars were trending
+        prior_trend_bars = sum(1 for c in classified[-15:-5] if c['bar_type'] in ('trend_bull', 'trend_bear'))
+        # Check if last 5 bars are horizontal (overlapping)
+        last_5 = bars[-5:]
+        high_range = max(b['high'] for b in last_5) - min(b['low'] for b in last_5)
+        avg_range = sum(b['high'] - b['low'] for b in bars[-15:-5]) / 10
+        overlap_count = 0
+        for i in range(1, len(last_5)):
+            prev_body_top = max(last_5[i-1]['open'], last_5[i-1]['close'])
+            prev_body_bot = min(last_5[i-1]['open'], last_5[i-1]['close'])
+            curr_body_top = max(last_5[i]['open'], last_5[i]['close'])
+            curr_body_bot = min(last_5[i]['open'], last_5[i]['close'])
+            overlap = max(0, min(prev_body_top, curr_body_top) - max(prev_body_bot, curr_body_bot))
+            if overlap > 0:
+                overlap_count += 1
+        if prior_trend_bars >= 5 and overlap_count >= 3 and high_range < avg_range * 2:
+            signals.append('final_flag: horizontal flag after protracted trend — breakout may reverse (final flag)')
+
+    # --- 5. Expanding triangle (5+ swings, each greater) ---
+    if len(bars) >= 20:
+        # Find swing highs and lows
+        swing_highs = []
+        swing_lows = []
+        for i in range(2, len(bars)-2):
+            if bars[i]['high'] > bars[i-1]['high'] and bars[i]['high'] > bars[i-2]['high'] and \
+               bars[i]['high'] > bars[i+1]['high'] and bars[i]['high'] > bars[i+2]['high']:
+                swing_highs.append((i, bars[i]['high']))
+            if bars[i]['low'] < bars[i-1]['low'] and bars[i]['low'] < bars[i-2]['low'] and \
+               bars[i]['low'] < bars[i+1]['low'] and bars[i]['low'] < bars[i+2]['low']:
+                swing_lows.append((i, bars[i]['low']))
+
+        # Check for expanding pattern: each swing high > prior, each swing low < prior
+        if len(swing_highs) >= 3 and len(swing_lows) >= 3:
+            expanding_highs = all(swing_highs[i][1] > swing_highs[i-1][1] for i in range(1, len(swing_highs)))
+            expanding_lows = all(swing_lows[i][1] < swing_lows[i-1][1] for i in range(1, len(swing_lows)))
+            if expanding_highs and expanding_lows:
+                signals.append(f'expanding_triangle: {len(swing_highs)} expanding highs + {len(swing_lows)} expanding lows — reversal pattern')
+
+    # --- 6. Two-bar reversal (already detected by detect_patterns, but flag as reversal signal) ---
+    if patterns.get('two_bar_reversal_bull'):
+        signals.append('two_bar_reversal_bull: strong bull reversal after bear bar — potential trend flip')
+    if patterns.get('two_bar_reversal_bear'):
+        signals.append('two_bar_reversal_bear: strong bear reversal after bull bar — potential trend flip')
+
+    # --- 7. Spike reversal (spike followed by opposite spike) ---
+    if patterns.get('spike_bull') and len(bars) >= 3:
+        # Check if last 2-3 bars are bear trend bars (opposite spike)
+        last_3 = classified[-3:]
+        bear_count = sum(1 for c in last_3 if c['bar_type'] in ('trend_bear', 'weak_bear'))
+        if bear_count >= 2:
+            signals.append('spike_reversal_bear: bull spike followed by bear spike — climactic reversal')
+
+    if patterns.get('spike_bear') and len(bars) >= 3:
+        last_3 = classified[-3:]
+        bull_count = sum(1 for c in last_3 if c['bar_type'] in ('trend_bull', 'weak_bull'))
+        if bull_count >= 2:
+            signals.append('spike_reversal_bull: bear spike followed by bull spike — climactic reversal')
+
+    return signals
+
+
 # ---------------------------------------------------------------------------
 # Bar-Level Analysis
 # ---------------------------------------------------------------------------
@@ -963,11 +1095,13 @@ async def analyze_ticker(ticker: str, exchange: str | None = None) -> dict:
             analysis[tf_name] = {'error': bars[0].get('error', 'No data') if bars else 'No data'}
             continue
 
+        pats = detect_patterns(bars)
         analysis[tf_name] = {
             'bar_count': len(bars),
             'trend_context': compute_trend_context(bars),
             'bar_analysis': compute_bar_analysis(bars),
-            'patterns': detect_patterns(bars),
+            'patterns': pats,
+            'reversal_signals': detect_reversal_signals(bars, pats),
             'last_bar_classified': classify_bar(
                 bars[-1], bars[-2] if len(bars) > 1 else None
             ) if bars else None,

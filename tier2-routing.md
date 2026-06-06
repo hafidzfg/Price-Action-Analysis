@@ -32,12 +32,14 @@ Stage 2 Agent produces:
 | `day_type.hypothesis` | Strong trend → low bar for entries; TR → neutral AI |
 | `pullbacks.current_leg` | Which pullback are we in? H2 at EMA is higher prob |
 | `pattern_evolution_watch` | Wedge pending → AI direction may be reversing |
+| `reversal_signals` (if present) | Trend line break, climax, wedge overshoot → AI may be flipping |
 
 **Override rules:**
 - SoS ≥ 12 → with-trend AI, do not consider countertrend
 - Barbwire day → no clear AI; fade extremes
 - Wedge top in bull trend → AI may be shifting (watch bar by bar)
 - Trend says bull but day type says ambiguous → trust structure, look at H4
+- **Reversal signals present → load `reversals.md`, check if AI is flipping. If strong reversal (MTR with trend line break + test), AI may have flipped.**
 
 ---
 
@@ -125,15 +127,41 @@ Start with `conviction_objective.subtotal`, then adjust:
 
 The only exceptions to "countertrend in strong trend = no":
 
-1. **Climax reversal** — after extreme wedge, first strong countertrend bar with big tail
-2. **Double top/bottom failure** — trend tests but fails to break, the failed attempt is the entry
-3. **L2 at range extreme** — in a trading range, buying H2 at bottom or selling L2 at top
+1. **Climax reversal** — after extreme wedge, first strong countertrend bar with big tail. See `reversals.md` §2 (Climactic Reversals).
+2. **Major Trend Reversal (MTR)** — trend line break + test of extreme + reversal setup. See `reversals.md` §1.
+3. **Double top/bottom failure** — trend tests but fails to break, the failed attempt is the entry. See `reversals.md` §6.
+4. **L2 at range extreme** — in a trading range, buying H2 at bottom or selling L2 at top.
+5. **Final flag reversal** — breakout from horizontal flag after protracted trend reverses. See `reversals.md` §5.
+6. **Wedge reversal at trend channel line overshoot** — third push overshoots TCL, reverses. See `reversals.md` §3.
+
+**When ANY of these are present:** Load `reversals.md` via `skill_view('price-action-al-brooks', 'reversals.md')`. The reversal pattern details, entry rules, and probability context are in that module.
 
 **If none of these apply, do not fade the trend.** `brooks_intent.countertrend` will say "none_recommended" when SoS is high.
 
 ---
 
-## 7. Entry Management
+## 7. Reversal Signal Scoring
+
+When reversal signals are present, adjust conviction as follows:
+
+| Reversal Signal | Conviction Adjustment | Notes |
+|----------------|----------------------|-------|
+| MTR (trend line break + test + reversal setup) | +1 to countertrend entry | Only if test channel shows weakness (overlapping bars, wedge shape) |
+| Climactic reversal (consecutive climaxes + opposite spike) | +1 to countertrend entry | After 2+ climaxes. 3+ climaxes = higher probability |
+| Wedge reversal at TCL overshoot | +1 to countertrend entry | Third push overshoots trend channel line |
+| Final flag reversal | +1 to countertrend entry | Horizontal flag after protracted trend, breakout fails |
+| Expanding triangle reversal | +1 to countertrend entry | 5+ expanding swings, each trapping traders |
+| DT/DB pullback reversal | +1 to countertrend entry | Double bottom + higher low pullback = reliable buy |
+| Failed breakout (one-tick failure) | +1 to fade direction | Trapped traders fuel the move |
+| Opening reversal at key S/R | +1 to countertrend entry | First hour only, at yesterday's H/L, MA, trend line |
+
+**Important:** These adjustments stack with the existing -2 for countertrend in strong trend. A +1 reversal bonus against a -2 countertrend penalty still results in -1 net. The reversal must be strong enough to overcome the trend penalty — which is correct per Brooks (most reversal attempts fail).
+
+**When to load reversals.md for scoring:** If ANY of the above signals are present, load `reversals.md` to get the full pattern context (probability, entry rules, failure conditions) before applying the adjustment.
+
+---
+
+## 8. Entry Management
 
 - **HIGH conviction:** Enter at market or tight limit at pullback EMA. Swing target = measured move.
 - **MEDIUM conviction:** Scalp the entry, trail stop after 1 ATR profit. Second half swings.
@@ -142,7 +170,7 @@ The only exceptions to "countertrend in strong trend = no":
 
 ---
 
-## 8. IDX Override (`.JK` tickers)
+## 9. IDX Override (`.JK` tickers)
 
 - No retail short-selling on IDX.
 - Only LONG setups allowed.

@@ -23,7 +23,7 @@ skills/price-action-al-brooks/
 
 ### Two-Tier Architecture
 
-This skill uses a three-tier knowledge loading system driven by the Tier-1 engine output.
+This skill uses a four-tier knowledge loading system driven by the Tier-1 engine output.
 
 | Tier | What | Who | What it produces |
 |------|------|-----|-----------------|
@@ -202,8 +202,13 @@ Analyze entry timeframe. Read:
 - Always: `core.md` via `skill_view('price-action-al-brooks', 'core.md')`
 - If trending (strong_bull/bear, tfo_bull/bear): `trends.md` via `skill_view('price-action-al-brooks', 'trends.md')`
 - If Trading Range or Barbwire: `ranges.md` via `skill_view('price-action-al-brooks', 'ranges.md')`
+- If reversal signals present (see Reversal Signal Detection below): `reversals.md` via `skill_view('price-action-al-brooks', 'reversals.md')` — **overlay, loads alongside state module**
 - `tier2-routing.md` for agent decision rules
 - `references/entry_type_matrix.md` for trend phase → entry type mapping
+
+**Reversal signal check:** Before writing analysis, scan for: trend line break + test of extreme, consecutive climaxes (2+ large trend bars), wedge overshoot of trend channel line, final flag breakout that reverses, expanding triangle (5+ expanding swings), always-in flip with follow-through, opening reversal at key S/R. If ANY present → load reversals.md alongside the state module.
+
+**Script output:** `fetch_data.py` now outputs `reversal_signals` per timeframe in the analysis dict. If `analysis[tf]['reversal_signals']` is non-empty, that timeframe has reversal conditions — load `reversals.md` and factor into conviction scoring.
 
 Write analysis to: `OBSIDIAN_VAULT_PATH/2 - Areas/Trading/Deep Dives/{WEEK_FOLDER}/{TICKER} - Deep Dive {YYYY-MM-DD}.md`
 
@@ -340,7 +345,8 @@ This skill is not a suggestion pile. Every step — execution mode, analysis for
 
 ## Knowledge Base
 **Source:** Al Brooks, Trading Price Action series
-- Core: Universal price action (bar anatomy, counting, breakouts, close, EMA, risk) — `core.md`
+- Core: Universal price action (bar anatomy, counting, breakouts, close, EMA, risk, time frames) — `core.md`
 - Book 1: Trends (26 chapters) — `trends.md` (load when trending)
 - Book 2: Trading Ranges (32 chapters) — `ranges.md` (load when ranging)
+- Book 3: Reversals (25 chapters) — `reversals.md` (load when reversal signals detected — overlay)
 
