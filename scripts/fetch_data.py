@@ -49,10 +49,13 @@ COMMODITY_MAP = {
     'DXY': 'TVC:DXY',
 }
 
-# Global exchange registry — exchange code → (region for scanner API)
+# Global exchange registry — source of truth for exchange resolution.
+# The references/global_exchanges.md doc is generated from this dict.
+# Exchange code → (region for TradingView Scanner API)
 # Used when ticker has no prefix and --exchange is not specified.
 # tvkit resolves any EXCHANGE:SYMBOL via TradingView WebSocket regardless of region;
 # the 'region' field only affects which TradingView Scanner endpoint to hit.
+# To add a new exchange: add it here. That's the only change needed.
 GLOBAL_EXCHANGES: dict[str, str] = {
     # Americas
     'NASDAQ': 'america',
@@ -242,11 +245,9 @@ SCANNER_COLUMNS = [
     "High.All","High.1M","High.3M","High.6M",
     "Low.All","Low.1M","Low.3M","Low.6M",
     "market_cap_basic",
-    "Aroon.Up","Aroon.Down",
-    "ADX","CCI20",
-    "gap","relative_volume_10d_calc",
+    "gap",
+    "relative_volume_10d_calc",
 ]
-
 
 def fetch_scanner(ticker: str, market_type: str) -> dict:
     """Fetch indicator snapshot from TradingView Scanner API."""
@@ -522,6 +523,49 @@ def detect_patterns(bars: list[dict]) -> dict:
     if spike_len >= 2:
         patterns[f'spike_{spike_dir}'] = {'bars': spike_len}
 
+    # --- Channel phase after spike (spike → channel → TR lifecycle) ---
+    if spike_len >= 2 and len(bars) >= spike_len + 4:
+        # Bars after the spike
+        after_bars = bars[-(len(bars) - spike_len):]
+        after_cls = classified[-(len(bars) - spike_len):]
+
+        if len(after_bars) >= 3:
+            channel_count = 0
+            check_count = min(len(after_bars), 10)
+
+            for k in range(check_count):
+                c = after_cls[-(k + 1)]
+                # Channel characteristics:
+                # 1. Two-sided trading (not pure trend bars)
+                two_sided = c['bar_type'] in ('doji', 'weak_bull', 'weak_bear',
+                                               'reversal_bull', 'reversal_bear')
+                # 2. Significant tails (hesitation)
+                has_tails = c.get('tail_top_pct', 0) > 25 or c.get('tail_bottom_pct', 0) > 25
+                # 3. Body overlap with prior bar
+                body_overlap = False
+                if k < len(after_bars) - 1:
+                    prev_body_top = max(after_bars[-(k + 2)]['open'], after_bars[-(k + 2)]['close'])
+                    prev_body_bot = min(after_bars[-(k + 2)]['open'], after_bars[-(k + 2)]['close'])
+                    curr_body_top = max(after_bars[-(k + 1)]['open'], after_bars[-(k + 1)]['close'])
+                    curr_body_bot = min(after_bars[-(k + 1)]['open'], after_bars[-(k + 1)]['close'])
+                    overlap = min(prev_body_top, curr_body_top) - max(prev_body_bot, curr_body_bot)
+                    if overlap > 0:
+                        body_overlap = True
+
+                if two_sided or has_tails or body_overlap:
+                    channel_count += 1
+
+            channel_ratio = channel_count / check_count
+            if channel_ratio >= 0.4:
+                patterns['channel_phase'] = {
+                    'direction': spike_dir,
+                    'channel_bars': channel_count,
+                    'total_checked': check_count,
+                    'channel_ratio': round(channel_ratio, 2),
+                    'note': f'Spike {spike_dir} transitioning to channel phase: '
+                            f'{channel_count}/{check_count} bars show two-sided trading/tails.',
+                }
+
     # --- Three-push pattern (wedge) ---
     if len(bars) >= 10:
         highs = [bars[i]['high'] for i in range(-10, 0)]
@@ -736,6 +780,93 @@ def compute_indicators_from_bars(bars: list[dict]) -> dict:
     return result
 
 
+def _find_swings(bars: list[dict], lookback: int = 2, forward: int = 2,
+                  pct_threshold: float = 0.3) -> tuple[list, list]:
+    """
+    Proper swing detection with percent-based thresholding.
+
+    Improvements over naive neighbour comparison:
+    - Uses a lookback/forward window (allows equal highs/lows as swing levels)
+    - Percent-based noise filter (ignores micro-swings below threshold)
+    - Merges nearby swings (within 3 bars)
+    - Handles last bars with tentative detection (no forward bars available)
+
+    Returns (swing_highs, swing_lows) where each is a list of
+    {'price': float, 'bar_idx': int, 'tentative': bool (optional)}.
+    """
+    n = len(bars)
+    swing_highs: list[dict] = []
+    swing_lows: list[dict] = []
+
+    # --- Main pass: bars with full lookback+forward window ---
+    for i in range(lookback, n - forward):
+        high_i = bars[i]['high']
+        low_i = bars[i]['low']
+
+        # Swing high: bar i's high is >= ALL highs in window
+        is_pivot_high = True
+        for j in range(i - lookback, i + forward + 1):
+            if j == i:
+                continue
+            if high_i < bars[j]['high']:
+                is_pivot_high = False
+                break
+
+        if is_pivot_high:
+            # Merge nearby swings (within 3 bars) — keep the higher one
+            if swing_highs and i - swing_highs[-1]['bar_idx'] < 3:
+                if high_i > swing_highs[-1]['price']:
+                    swing_highs[-1] = {'price': high_i, 'bar_idx': i}
+                continue
+            # Percent threshold: significant move from prior swing?
+            if swing_highs:
+                pct_move = (high_i - swing_highs[-1]['price']) / swing_highs[-1]['price'] * 100
+                if pct_move < pct_threshold:
+                    continue
+            swing_highs.append({'price': high_i, 'bar_idx': i})
+
+        # Swing low: bar i's low is <= ALL lows in window
+        is_pivot_low = True
+        for j in range(i - lookback, i + forward + 1):
+            if j == i:
+                continue
+            if low_i > bars[j]['low']:
+                is_pivot_low = False
+                break
+
+        if is_pivot_low:
+            if swing_lows and i - swing_lows[-1]['bar_idx'] < 3:
+                if low_i < swing_lows[-1]['price']:
+                    swing_lows[-1] = {'price': low_i, 'bar_idx': i}
+                continue
+            if swing_lows:
+                prev_price = swing_lows[-1]['price']
+                pct_move = abs(low_i - prev_price) / prev_price * 100 if prev_price else 0
+                if pct_move < pct_threshold:
+                    continue
+            swing_lows.append({'price': low_i, 'bar_idx': i})
+
+    # --- Tentative pass: last `forward` bars (only lookback available) ---
+    for i in range(max(lookback, n - forward), n):
+        high_i = bars[i]['high']
+        is_pivot_high = all(high_i >= bars[j]['high'] for j in range(i - lookback, i))
+        if is_pivot_high:
+            if (not swing_highs or i > swing_highs[-1]['bar_idx']) and \
+               (not swing_highs or
+                (high_i - swing_highs[-1]['price']) / swing_highs[-1]['price'] * 100 >= pct_threshold):
+                swing_highs.append({'price': high_i, 'bar_idx': i, 'tentative': True})
+
+        low_i = bars[i]['low']
+        is_pivot_low = all(low_i <= bars[j]['low'] for j in range(i - lookback, i))
+        if is_pivot_low:
+            if (not swing_lows or i > swing_lows[-1]['bar_idx']) and \
+               (not swing_lows or
+                abs(low_i - swing_lows[-1]['price']) / swing_lows[-1]['price'] * 100 >= pct_threshold):
+                swing_lows.append({'price': low_i, 'bar_idx': i, 'tentative': True})
+
+    return swing_highs, swing_lows
+
+
 def compute_trend_context(bars: list[dict]) -> dict:
     """
     Compute trend context from OHLCV data.
@@ -779,16 +910,8 @@ def compute_trend_context(bars: list[dict]) -> dict:
     else:
         trend = 'insufficient_data'
 
-    # Swing highs/lows (last 5)
-    swing_highs = []
-    swing_lows = []
-    for i in range(2, len(bars) - 1):
-        if bars[i]['high'] > bars[i-1]['high'] and bars[i]['high'] > bars[i-2]['high'] and \
-           bars[i]['high'] > bars[i+1]['high']:
-            swing_highs.append({'price': bars[i]['high'], 'bar_idx': i})
-        if bars[i]['low'] < bars[i-1]['low'] and bars[i]['low'] < bars[i-2]['low'] and \
-           bars[i]['low'] < bars[i+1]['low']:
-            swing_lows.append({'price': bars[i]['low'], 'bar_idx': i})
+    # Proper swing detection with percent-based thresholding
+    swing_highs, swing_lows = _find_swings(bars, lookback=2, forward=2, pct_threshold=0.3)
 
     return {
         'sma20': sma20,
@@ -799,11 +922,6 @@ def compute_trend_context(bars: list[dict]) -> dict:
         'trend': trend,
         'swing_highs': swing_highs[-5:] if swing_highs else [],
         'swing_lows': swing_lows[-5:] if swing_lows else [],
-        'last_5_bars': [{
-            'date': b['date'],
-            'O': b['open'], 'H': b['high'], 'L': b['low'], 'C': b['close'],
-            'V': b['volume']
-        } for b in bars[-5:]],
     }
 
 

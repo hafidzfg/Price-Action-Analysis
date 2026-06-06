@@ -107,7 +107,9 @@ SOS_SIGNS = [
 
 
 def compute_sos(bars: list, classified: list, trend_context: dict,
-                patterns: dict, trend_direction: str) -> dict:
+                patterns: dict, trend_direction: str,
+                bar_analysis: dict = None,
+                weekly_trend_dir: str = None) -> dict:
     """
     Compute which of the 22 Signs of Strength are present.
     Returns count, present/absent lists, interpretation.
@@ -221,14 +223,22 @@ def compute_sos(bars: list, classified: list, trend_context: dict,
         s9 = True
     present.append(9) if s9 else absent.append(9)
 
-    # --- Sign 10: Small bodies in trend direction ---
-    s10 = False
-    small_bodies = 0
-    for c in last_10_cls[-5:]:
-        if c['body_pct'] < 25 and c['close_position'] > 0.5:
-            small_bodies += 1
-    if small_bodies >= 2:
-        s10 = True
+    # --- Sign 10: No big climaxes (absence of unusually large trend bars) ---
+    s10 = True  # Assume no climax until proven otherwise
+    for ci in range(max(0, len(bars) - 10), len(bars)):
+        c = classified[ci]
+        b = bars[ci]
+        is_trend_dir = (trend_up and c['bar_type'] in ('trend_bull', 'weak_bull')) or \
+                       (bear and c['bar_type'] in ('trend_bear', 'weak_bear'))
+        if is_trend_dir and c['body_pct'] >= 75:
+            lookback_start = max(0, ci - 5)
+            if ci - lookback_start >= 3:
+                prior_ranges = [bars[j]['high'] - bars[j]['low'] for j in range(lookback_start, ci)]
+                avg_prior = sum(prior_ranges) / len(prior_ranges) if prior_ranges else 0
+                this_range = b['high'] - b['low']
+                if avg_prior > 0 and this_range > avg_prior * 1.8:
+                    s10 = False
+                    break
     present.append(10) if s10 else absent.append(10)
 
     # --- Sign 11: Pullback to EMA has small bars ---
@@ -246,10 +256,10 @@ def compute_sos(bars: list, classified: list, trend_context: dict,
 
     # --- Sign 12: Pullback forms H2/L2 at 20-EMA ---
     s12 = False
-    pullback_count = bar_analysis_field(bars, 'pullback_count', {})
-    if trend_up and pullback_count.get('L', 0) == 2:
+    pb = (bar_analysis or {}).get('pullback_count', {})
+    if trend_up and pb.get('L', 0) == 2:
         s12 = True
-    elif bear and pullback_count.get('H', 0) == 2:
+    elif bear and pb.get('H', 0) == 2:
         s12 = True
     present.append(12) if s12 else absent.append(12)
 
@@ -316,8 +326,14 @@ def compute_sos(bars: list, classified: list, trend_context: dict,
     present.append(18) if s18 else absent.append(18)
 
     # --- Sign 19: Larger time frame also in trend ---
-    # (Requires multi-timeframe data — handled during merge)
-    not_computable.append(19)
+    # Check if weekly trend direction matches daily
+    weekly_trend = weekly_trend_dir or 'unknown'
+    s19 = False
+    if 'bull' in trend_direction and 'bull' in weekly_trend:
+        s19 = True
+    elif 'bear' in trend_direction and 'bear' in weekly_trend:
+        s19 = True
+    present.append(19) if s19 else absent.append(19)
 
     # --- Sign 20: High volume on trend bars ---
     s20 = False
@@ -355,11 +371,12 @@ def compute_sos(bars: list, classified: list, trend_context: dict,
 
     # --- Interpretation ---
     total_present = len(present)
-    computable = 22 - len(not_computable)
+    computable = 22 - len(not_computable)  # kept for output
 
-    if total_present >= computable * 0.65:
+    # Thresholds aligned with SKILL.md rubric: ≥12 = strong, 5-11 = moderate, ≤4 = weak
+    if total_present >= 12:
         interpretation = 'strong_trend_likely'
-    elif total_present >= computable * 0.35:
+    elif total_present >= 5:
         interpretation = 'moderate_strength'
     else:
         interpretation = 'weak_or_ambiguous'
@@ -374,10 +391,6 @@ def compute_sos(bars: list, classified: list, trend_context: dict,
         'interpretation': interpretation,
     }
 
-
-def bar_analysis_field(bars, field, default=None):
-    """Extract a field from the analysis embedded in the data."""
-    return default
 
 
 def get_ema20_over_time(bars: list) -> list:
@@ -709,6 +722,20 @@ def compute_pullbacks(bars: list, classified: list,
         pb_count_str = 'unknown'
         ambiguous_flag = True
 
+    # Compute EMA proximity for the current pullback
+    ema20 = trend_context.get('ema20', 0)
+    last_close = bars[-1]['close'] if bars else 0
+    if ema20 and last_close:
+        deviation_pct = abs(last_close - ema20) / ema20 * 100
+        if deviation_pct < 0.5:
+            ema_prox = 'at_ema'
+        elif deviation_pct < 2.0:
+            ema_prox = 'near_ema'
+        else:
+            ema_prox = 'far'
+    else:
+        ema_prox = 'unknown'
+
     return {
         'structure_based': {
             'legs': legs_with_pullbacks,
@@ -717,7 +744,7 @@ def compute_pullbacks(bars: list, classified: list,
                 'start_bar': current_leg['start_bar'] if current_leg else None,
                 'pullback_count': pb_count_str,
                 'pullback_details': current_leg['pullbacks'] if current_leg else [],
-                'ema_proximity': 'unknown',
+                'ema_proximity': ema_prox,
             },
             'ambiguous': ambiguous_flag,
         },
@@ -727,11 +754,12 @@ def compute_pullbacks(bars: list, classified: list,
 
 
 def _bar_scan_pullbacks(bars, classified, trend_dir):
-    """Fallback: scan last 20 bars backward for pullback count."""
+    """Fallback: scan last 20 bars backward counting distinct pullback legs."""
     h_count = 0
     l_count = 0
     leg_dir = None
     bull = trend_dir == 'bull_trend'
+    in_countertrend_run = False
 
     start = max(0, len(classified) - 20)
     cls_slice = classified[start:]
@@ -742,18 +770,22 @@ def _bar_scan_pullbacks(bars, classified, trend_dir):
             ct_simple = 'bull' if ct['close_position'] > 0.5 else 'bear' if ct['close_position'] < 0.5 else 'neutral'
             leg_dir = 'up' if (bull and ct_simple != 'bear') or (not bull and ct_simple == 'bear') else 'down'
 
-        bar_is_trend = ct['bar_type'] in ('trend_bull', 'trend_bear')
-        bar_is_weak = ct['bar_type'] in ('weak_bull', 'weak_bear')
-        bar_is_doji = ct['bar_type'] == 'doji'
-
+        is_counter = False
         if leg_dir == 'up':
-            if bar_is_weak or bar_is_doji:
-                l_count += 1
-                break
+            is_counter = ct['bar_type'] in ('weak_bear', 'trend_bear', 'doji', 'reversal_bear')
         else:
-            if bar_is_weak or bar_is_doji:
+            is_counter = ct['bar_type'] in ('weak_bull', 'trend_bull', 'doji', 'reversal_bull')
+
+        if is_counter and not in_countertrend_run:
+            # Start of a new pullback leg
+            in_countertrend_run = True
+            if leg_dir == 'up':
+                l_count += 1
+            else:
                 h_count += 1
-                break
+        elif not is_counter and in_countertrend_run:
+            # End of current pullback leg
+            in_countertrend_run = False
 
     return {'H': h_count, 'L': l_count, 'leg_direction': 'up' if leg_dir == 'up' else 'down',
             'note': 'fallback_bar_scan'}
@@ -790,12 +822,19 @@ def compute_measured_moves(bars: list, trend_context: dict) -> dict:
 
         if best_low:
             leg_extent = last_high['price'] - best_low['price']
+            # Correct Brooks MM: target = pullback_level + leg_extent
+            # Since we don't know pullback depth, compute two projections:
+            #   base (no pullback) from leg high — aggressive
+            #   midpoint (50% pullback) from leg midpoint — conservative
+            midpoint = (best_low['price'] + last_high['price']) / 2
             result['bull'] = {
                 'leg1_high': last_high['price'],
                 'leg1_low': best_low['price'],
                 'extent': round(leg_extent, 4),
                 'measured_target': round(last_high['price'] + leg_extent, 4),
-                'note': f"Leg 1 extent = ${round(leg_extent, 2)}. Project from leg low ${best_low['price']} → ${round(last_high['price'] + leg_extent, 2)}",
+                'target_conservative': round(midpoint + leg_extent, 4),
+                'projection_method': 'aggressive (no pullback). target_conservative assumes 50% retrace before leg 2.',
+                'note': f"Leg 1 extent = ${round(leg_extent, 2)}. Aggressive: ${round(last_high['price'] + leg_extent, 2)} (from leg high). Conservative: ${round(midpoint + leg_extent, 2)} (from mid). Agent: adjust for actual pullback depth.",
             }
             # Current leg progress
             last_close = bars[-1]['close'] if bars else 0
@@ -814,12 +853,15 @@ def compute_measured_moves(bars: list, trend_context: dict) -> dict:
 
         if best_high:
             leg_extent = best_high['price'] - last_low['price']
+            midpoint = (best_high['price'] + last_low['price']) / 2
             result['bear'] = {
                 'leg1_high': best_high['price'],
                 'leg1_low': last_low['price'],
                 'extent': round(leg_extent, 4),
                 'measured_target': round(last_low['price'] - leg_extent, 4),
-                'note': f"Leg 1 extent = ${round(leg_extent, 2)}. Project from leg high ${best_high['price']} → ${round(last_low['price'] - leg_extent, 2)}",
+                'target_conservative': round(midpoint - leg_extent, 4),
+                'projection_method': 'aggressive (no pullback). target_conservative assumes 50% retrace before leg 2.',
+                'note': f"Leg 1 extent = ${round(leg_extent, 2)}. Aggressive: ${round(last_low['price'] - leg_extent, 2)} (from leg low). Conservative: ${round(midpoint - leg_extent, 2)} (from mid).",
             }
 
     return result
@@ -900,19 +942,48 @@ def compute_conviction_objective(trend_context: dict, sos: dict,
         cl = pullbacks['structure_based']['current_leg']
         pb_info = cl
     pcount = pb_info.get('pullback_count', 'unknown')
+    ema_prox = pb_info.get('ema_proximity', 'unknown')
+    in_ema_zone = ema_prox in ('at_ema', 'near_ema')
 
-    if bull and pcount in ('L2', 'L3'):
+    if bull and pcount in ('L2', 'L3') and in_ema_zone:
         score += 1
         breakdown['pullback_factor'] = 1
+    elif bear and pcount in ('H2', 'H3') and in_ema_zone:
+        score += 1
+        breakdown['pullback_factor'] = 1
+    elif bull and pcount in ('L2', 'L3'):
+        breakdown['pullback_factor'] = 0  # H2/L2 but not at EMA — not an M2B/M2S setup
     elif bear and pcount in ('H2', 'H3'):
-        score += 1
-        breakdown['pullback_factor'] = 1
+        breakdown['pullback_factor'] = 0
     elif bull and pcount == 'L1':
         breakdown['pullback_factor'] = 0
     elif bear and pcount == 'H1':
         breakdown['pullback_factor'] = 0
     else:
         breakdown['pullback_factor'] = 0
+
+    # 6. Range position factor (trading range context for H2/L2)
+    range_pos_factor = 0
+    dt = day_type['hypothesis']
+    if dt == 'trading_range':
+        swing_highs = trend_context.get('swing_highs', [])
+        swing_lows = trend_context.get('swing_lows', [])
+        last_close = trend_context.get('last_close', 0)
+        if swing_highs and swing_lows and last_close:
+            range_high = max(sh['price'] for sh in swing_highs)
+            range_low = min(sl['price'] for sl in swing_lows)
+            range_height = range_high - range_low
+            if range_height > 0:
+                price_pos = (last_close - range_low) / range_height
+                # H2 near top, L2 near bottom = edge at extremes
+                if bear and pcount in ('H2', 'H3') and price_pos > 0.66:
+                    range_pos_factor = 1
+                elif bull and pcount in ('L2', 'L3') and price_pos < 0.33:
+                    range_pos_factor = 1
+                elif pcount in ('H2', 'H3', 'L2', 'L3'):
+                    range_pos_factor = -1  # H2/L2 in range middle = avoid
+    score += range_pos_factor
+    breakdown['range_position'] = range_pos_factor
 
     return {
         'subtotal': score,
@@ -1030,6 +1101,14 @@ def compute_pattern_watch(patterns: dict, pullbacks: dict,
         watch_items.append('Spike down: follow-through or channel phase expected.')
         trigger_bars = 3
 
+    if patterns.get('channel_phase'):
+        cp = patterns['channel_phase']
+        dir_label = 'up' if cp.get('direction') == 'bull' else 'down'
+        ratio = cp.get('channel_ratio', 0)
+        watch_items.append(f'Spike {dir_label} → channel phase detected ({ratio*100:.0f}% channel bars). '
+                           f'Channel may transition to TR or trend resumption.')
+        trigger_bars = min(trigger_bars, 3)
+
     if patterns.get('micro_channel_bull') or patterns.get('micro_channel_bear'):
         watch_items.append('Micro channel: steep trend, trend resumption likely after pullback.')
         trigger_bars = 2
@@ -1047,6 +1126,27 @@ def compute_pattern_watch(patterns: dict, pullbacks: dict,
     elif bear_watch and pb_count == 'H1':
         watch_items.append('H1 formed. Watch for H2 at EMA for standard M2T setup.')
 
+    # M10: Failed breakout trap — spike followed by compression/reversal bar
+    spike_dir = 'bull' if patterns.get('spike_bull') else 'bear' if patterns.get('spike_bear') else None
+    if spike_dir and patterns.get('inside_bar'):
+        watch_items.append(f'Spike {spike_dir} followed by inside bar: potential failed breakout, watch for reversal.')
+        trigger_bars = min(trigger_bars, 2)
+    if spike_dir and patterns.get('two_bar_reversal_bull' if spike_dir == 'bear' else 'two_bar_reversal_bear'):
+        watch_items.append(f'Spike {spike_dir} with immediate reversal: potential failed breakout trap.')
+        trigger_bars = min(trigger_bars, 1)
+
+    # M5: Final flag — check if shallow pullback in extended trend shows exhaustion
+    ema20 = trend_context.get('ema20', 0)
+    last_close = trend_context.get('last_close', 0)
+    if ema20 and last_close and pb_count in ('L2', 'H2', 'L3', 'H3'):
+        dev_pct = abs(last_close - ema20) / ema20 * 100
+        if dev_pct > 3.0:
+            # Pullback is deep — may be the beginning of a larger correction, not a flag
+            pass
+        else:
+            watch_items.append(f'Pullback {pb_count} near EMA: potential {pb_count} setup.')
+            trigger_bars = min(trigger_bars, 2)
+
     if watch_items:
         note = ' | '.join(watch_items)
 
@@ -1058,7 +1158,311 @@ def compute_pattern_watch(patterns: dict, pullbacks: dict,
 
 
 # ---------------------------------------------------------------------------
-# 8. Main Entry Point
+# 8. First Pullback Sequence — Trend Health (21-step weakening framework)
+# ---------------------------------------------------------------------------
+
+def compute_trend_health(bars: list, classified: list, trend_context: dict,
+                         patterns: dict, pullbacks: dict, day_type: dict,
+                         trend_direction: str) -> dict:
+    """
+    Brooks' First Pullback Sequence — 21-step trend weakening framework.
+
+    Brooks describes how strong trends weaken through a predictable sequence
+    before transitioning to a trading range or reversal. This function maps
+    observable bar/pattern characteristics to that sequence.
+
+    Step ranges:
+      0        — No trend / insufficient data
+      1-7      — Early weakening (trend intact, but entry quality declining)
+      8-14     — Moderate weakening (trend suspect, manage risk tightly)
+      15-21    — Late stage — major transition likely, countertrend viable
+      21+      — Transition complete (now in TR or reversal)
+
+    Returns:
+      trend_health_index: int  0-21+
+      stage: str               'insufficient_data' | 'trend_intact' |
+                               'early_weakening' | 'moderate_weakening' |
+                               'late_stage' | 'transition_complete'
+      stage_label: str         Human-readable summary
+      detected_signals: list   Active signals from the sequence
+      warning: str or None     Actionable guidance
+    """
+    if not bars or len(bars) < 15:
+        return {'trend_health_index': 0, 'stage': 'insufficient_data',
+                'stage_label': 'Insufficient data for trend health assessment',
+                'detected_signals': [], 'warning': None}
+
+    bull = trend_direction == 'bull_trend'
+    bear = trend_direction == 'bear_trend'
+    if not bull and not bear:
+        return {'trend_health_index': 21, 'stage': 'transition_complete',
+                'stage_label': 'No clear trend direction — transition likely complete',
+                'detected_signals': ['Trend direction absent (mixed/TR)'],
+                'warning': 'Avoid trend-following setups. Trade range extremes or wait.'}
+
+    last_10_cls = classified[-10:] if len(classified) >= 10 else classified
+    last_15_bars = bars[-15:] if len(bars) >= 15 else bars
+    last_20 = bars[-20:] if len(bars) >= 20 else bars
+
+    signals = []
+    step = 0
+    ema20 = trend_context.get('ema20', 0)
+
+    # === GROUP 1: Steps 1-7 — Early Weakening ===
+
+    # S1: Fewer large trend bars
+    strong_trend_bars = sum(
+        1 for c in last_10_cls
+        if (bull and c['bar_type'] == 'trend_bull') or
+           (bear and c['bar_type'] == 'trend_bear'))
+    if strong_trend_bars <= 2:
+        signals.append('S1: Fewer strong trend bars in last 10 (≤2)')
+        step = max(step, 1)
+
+    # S2: Deeper pullbacks (countertrend bar runs of 3+)
+    pb_info = {}
+    if pullbacks.get('structure_based'):
+        pb_info = pullbacks['structure_based'].get('current_leg', {})
+    pb_details = pb_info.get('pullback_details', [])
+    if pb_details:
+        deep_pbs = sum(1 for p in pb_details if p.get('bar_count', 0) >= 3)
+        if deep_pbs >= 1:
+            signals.append(f'S2: Deep pullback detected ({deep_pbs} run(s) of 3+ bars)')
+            step = max(step, 2)
+
+    # S3: Two-legged pullback (L2/H2) appearing
+    pb_count = pb_info.get('pullback_count', '')
+    if (bull and 'L2' in str(pb_count)) or (bear and 'H2' in str(pb_count)):
+        signals.append(f'S3: Two-legged pullback ({pb_count}) developing')
+        step = max(step, 3)
+
+    # S4: Wedge pattern forming
+    wedge_key = 'wedge_top' if bull else 'wedge_bottom'
+    if patterns.get(wedge_key):
+        pushes = patterns[wedge_key].get('pushes', 3) if isinstance(patterns[wedge_key], dict) else 3
+        signals.append(f'S4: Wedge developing ({pushes} pushes)')
+        step = max(step, 4)
+
+    # S5: Long tails on trend bars (hesitation)
+    tail_count = 0
+    for c in last_10_cls:
+        if bull and c['bar_type'] == 'trend_bull' and c.get('tail_top_pct', 0) > 20:
+            tail_count += 1
+        elif bear and c['bar_type'] == 'trend_bear' and c.get('tail_bottom_pct', 0) > 20:
+            tail_count += 1
+    if tail_count >= 2:
+        signals.append(f'S5: Long tails on {tail_count} trend bars (hesitation)')
+        step = max(step, 5)
+
+    # S6: Barbwire / inside bars after strong move
+    dt_hyp = day_type.get('hypothesis', '')
+    if dt_hyp == 'barbwire':
+        signals.append('S6: Barbwire / tight trading range after strong move')
+        step = max(step, 6)
+    elif patterns.get('inside_bar') and patterns.get('spike_bull' if bull else 'spike_bear'):
+        signals.append('S6: Inside bar after spike — compression forming')
+        step = max(step, 6)
+
+    # S7: Pause bars — consecutive dojis
+    doji_run = 0
+    for c in reversed(last_10_cls):
+        if c['bar_type'] == 'doji':
+            doji_run += 1
+        else:
+            break
+    if doji_run >= 2:
+        signals.append(f'S7: {doji_run} consecutive dojis (pause/hesitation)')
+        step = max(step, 7)
+
+    # === GROUP 2: Steps 8-14 — Moderate Weakening ===
+
+    # S8: Trend attempts but signal bars are weak
+    #   — recent bars in trend direction but with small bodies
+    weak_trend_bar_count = sum(
+        1 for c in last_10_cls
+        if (bull and c['bar_type'] == 'weak_bull') or
+           (bear and c['bar_type'] == 'weak_bear'))
+    if weak_trend_bar_count >= 3 and strong_trend_bars <= 2:
+        signals.append('S8: Trend bars are weak (small bodies) — poor signal quality')
+        step = max(step, 8)
+
+    # S9: Failed follow-through — reversal bars appearing after trend attempts
+    rev_count = sum(
+        1 for c in last_10_cls
+        if 'reversal' in c['bar_type'])
+    if rev_count >= 2:
+        signals.append(f'S9: {rev_count} reversal bars in last 10 — failed follow-through')
+        step = max(step, 9)
+
+    # S10: Overshoot and reversals (trend bars immediately reversed next bar)
+    overshoot_count = 0
+    for i in range(1, min(11, len(last_10_cls))):
+        c = last_10_cls[-i]
+        prev = last_10_cls[-(i + 1)] if i + 1 <= len(last_10_cls) else None
+        if prev:
+            if bull and c['bar_type'] == 'trend_bull' and prev['bar_type'] in ('trend_bear', 'reversal_bear'):
+                overshoot_count += 1
+            elif bear and c['bar_type'] == 'trend_bear' and prev['bar_type'] in ('trend_bull', 'reversal_bull'):
+                overshoot_count += 1
+    if overshoot_count >= 2:
+        signals.append(f'S10: {overshoot_count} trend bars immediately reversed')
+        step = max(step, 10)
+
+    # S11: EMA hugging — price oscillating tightly around 20-EMA
+    if ema20 and len(last_15_bars) >= 5:
+        close_deviations = [abs(b['close'] - ema20) / (ema20 or 1) * 100 for b in last_15_bars[-5:]]
+        avg_dev = sum(close_deviations) / len(close_deviations)
+        cross_count = 0
+        for i in range(1, len(last_15_bars)):
+            prev_close = last_15_bars[i - 1]['close']
+            curr_close = last_15_bars[i]['close']
+            if (prev_close <= ema20 <= curr_close) or (prev_close >= ema20 >= curr_close):
+                cross_count += 1
+        if avg_dev < 1.5 and cross_count >= 3:
+            signals.append(f'S11: EMA hugging — {cross_count} crosses in 15 bars, avg deviation {avg_dev:.1f}%')
+            step = max(step, 11)
+
+    # S12: H2/L2 failing — second entry breaks down
+    #   Check if consecutive closes on wrong side of EMA
+    if ema20:
+        cons_wrong_side = 0
+        for b in reversed(last_15_bars):
+            if (bull and b['close'] < ema20) or (bear and b['close'] > ema20):
+                cons_wrong_side += 1
+            else:
+                break
+        if cons_wrong_side >= 2:
+            signals.append(f'S12: {cons_wrong_side} consecutive closes on wrong side of EMA — H2/L2 failing')
+            step = max(step, 12)
+
+    # S13: Countertrend closes holding (bears above EMA / bulls below)
+    if ema20:
+        ct_close_holds = 0
+        for c in last_10_cls:
+            if bull and c['bar_type'] in ('weak_bear', 'trend_bear', 'reversal_bear'):
+                ct_close_holds += 1
+            elif bear and c['bar_type'] in ('weak_bull', 'trend_bull', 'reversal_bull'):
+                ct_close_holds += 1
+        if ct_close_holds >= 3:
+            signals.append(f'S13: {ct_close_holds} countertrend bars — opposing side gaining traction')
+            step = max(step, 13)
+
+    # S14: Micro channel failing — each leg fails to extend
+    channel_key = 'micro_channel_bull' if bull else 'micro_channel_bear'
+    if patterns.get(channel_key):
+        signals.append('S14: Micro channel present — legs may fail to extend')
+        step = max(step, 14)
+
+    # === GROUP 3: Steps 15-21 — Late Stage ===
+
+    # S15: Climax bars — bodies getting larger with overlapping (exhaustion)
+    climax_count = 0
+    for i in range(len(last_10_cls)):
+        c = last_10_cls[i]
+        b = last_15_bars[i] if i < len(last_15_bars) else bars[-(len(last_10_cls) - i)]
+        if c.get('body_pct', 0) >= 70:
+            # Check if range is expanding vs recent avg
+            lookback = max(0, i - 5)
+            if i - lookback >= 3:
+                prior_ranges = [bars[j]['high'] - bars[j]['low'] for j in range(lookback, i)]
+                avg_range = sum(prior_ranges) / len(prior_ranges) if prior_ranges else 0
+                if avg_range > 0 and (b['high'] - b['low']) > avg_range * 1.5:
+                    climax_count += 1
+    if climax_count >= 1:
+        signals.append(f'S15: Climax bar(s) detected ({climax_count}) — exhaustion possible')
+        step = max(step, 15)
+
+    # S16-17: Trend line break (price closes beyond recent swing levels)
+    swing_highs = trend_context.get('swing_highs', [])
+    swing_lows = trend_context.get('swing_lows', [])
+    last_close = trend_context.get('last_close', 0)
+
+    if bull and swing_lows and last_close:
+        # Check if price closed below most recent swing low
+        recent_swing_lows = [sl for sl in swing_lows if sl.get('tentative') != True]
+        if recent_swing_lows:
+            last_swing_low = recent_swing_lows[-1]['price']
+            if last_close < last_swing_low:
+                signals.append(f'S16-17: Major TL break — close below recent swing low')
+                step = max(step, 16)
+    elif bear and swing_highs and last_close:
+        recent_swing_highs = [sh for sh in swing_highs if sh.get('tentative') != True]
+        if recent_swing_highs:
+            last_swing_high = recent_swing_highs[-1]['price']
+            if last_close > last_swing_high:
+                signals.append(f'S16-17: Major TL break — close above recent swing high')
+                step = max(step, 16)
+
+    # S18: Expanding range / pendulum swings
+    if len(last_20) >= 10:
+        ranges_first5 = [last_20[i]['high'] - last_20[i]['low'] for i in range(0, 5)]
+        ranges_last5 = [last_20[i]['high'] - last_20[i]['low'] for i in range(-5, 0)]
+        avg_first5 = sum(ranges_first5) / 5
+        avg_last5 = sum(ranges_last5) / 5
+        if avg_first5 > 0 and avg_last5 > avg_first5 * 1.5:
+            signals.append('S18: Range expanding (pendulum swings) — volatility increasing')
+            step = max(step, 18)
+
+    # S19: First pullback goes to opposite side of EMA
+    if ema20 and len(bars) >= 10:
+        # Check latest pullback — does it cross to other side of EMA?
+        current_dev = (last_close - ema20) / ema20 * 100 if ema20 else 999
+        if bull and current_dev < -1.0:
+            signals.append(f'S19: Pullback crossed below EMA ({current_dev:.1f}%)')
+            step = max(step, 19)
+        elif bear and current_dev > 1.0:
+            signals.append(f'S19: Pullback crossed above EMA ({current_dev:.1f}%)')
+            step = max(step, 19)
+
+    # S20-21: Larger TR developing / transition
+    dt_hyp = day_type.get('hypothesis', '')
+    if dt_hyp == 'trading_range':
+        signals.append('S20-21: Trading range established — trend transition likely complete')
+        step = max(step, 21)
+
+    # Clamp at 21
+    step = min(step, 21)
+
+    # Stage classification
+    if step == 0:
+        stage = 'trend_intact'
+        stage_label = 'Trend appears healthy — no significant weakening signals detected'
+    elif step <= 7:
+        stage = 'early_weakening'
+        stage_label = f'Early weakening (step {step}/21): Trend intact but monitor entry quality'
+    elif step <= 14:
+        stage = 'moderate_weakening'
+        stage_label = f'Moderate weakening (step {step}/21): Trend suspect, tighten risk management'
+    elif step <= 20:
+        stage = 'late_stage'
+        stage_label = f'Late stage (step {step}/21): Major transition likely — countertrend setups viable'
+    else:  # step >= 21
+        stage = 'transition_complete'
+        stage_label = f'Transition complete (step {step}/21): TR or reversal in progress'
+
+    # Warning
+    warning = None
+    if step >= 15:
+        warning = ('Late-stage trend weakening. Trend-following entries carry elevated risk. '
+                   'Consider countertrend setups or wait for new trend to establish.')
+    elif step >= 8:
+        warning = ('Moderate trend weakening detected. Tighten stops on with-trend trades. '
+                   'Be alert for failed breakouts and second entry failures.')
+    elif step >= 3:
+        warning = ('Early weakening signs. Continue with-trend bias but be more selective '
+                   'on entry quality.')
+
+    return {
+        'trend_health_index': step,
+        'stage': stage,
+        'stage_label': stage_label,
+        'detected_signals': signals,
+        'warning': warning,
+    }
+
+
+# ---------------------------------------------------------------------------
+# 9. Main Entry Point
 # ---------------------------------------------------------------------------
 
 def analyze(raw_data: dict) -> dict:
@@ -1093,7 +1497,12 @@ def analyze(raw_data: dict) -> dict:
 
     trend_dir = trend_context.get('trend', 'unknown')
 
-    sos = compute_sos(daily_bars, classified, trend_context, patterns, trend_dir)
+    # Extract weekly trend direction for multi-TF SoS (Sign 19)
+    weekly_analysis = analysis_data.get('weekly', {})
+    weekly_tc = weekly_analysis.get('trend_context', {}) if not weekly_analysis.get('error') else {}
+    weekly_trend = weekly_tc.get('trend', 'unknown')
+
+    sos = compute_sos(daily_bars, classified, trend_context, patterns, trend_dir, bar_analysis, weekly_trend)
     result['signs_of_strength'] = sos
 
     day_type = classify_day_type(daily_bars, classified, trend_context, bar_analysis)
@@ -1113,6 +1522,11 @@ def analyze(raw_data: dict) -> dict:
 
     watch = compute_pattern_watch(patterns, pullbacks, day_type, trend_context)
     result['pattern_evolution_watch'] = watch
+
+    # M2: First Pullback Sequence — trend health index
+    trend_health = compute_trend_health(daily_bars, classified, trend_context,
+                                        patterns, pullbacks, day_type, trend_dir)
+    result['trend_health'] = trend_health
 
     ema20 = indicators.get('ema20', trend_context.get('ema20', 0))
     atr = indicators.get('atr', 0)

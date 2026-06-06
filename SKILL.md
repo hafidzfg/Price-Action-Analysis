@@ -18,6 +18,26 @@ skills/price-action/
     └── brooks_analysis.py ← Tier-1 deterministic engine (SoS, day type, pullbacks, etc.)
 ```
 
+### Two-Tier Architecture
+
+This skill is split into two tiers. Understand the boundary:
+
+| Tier | What | Who | What it produces |
+|------|------|-----|-----------------|
+| **Tier 1** | Deterministic analysis engine | `brooks_analysis.py` | SoS count, day type hypothesis, pullback count (H1/L1-H4/L4), measured move targets, conviction objective subtotal, pattern watch items |
+| **Tier 2** | Human/agent judgment | The agent reading this skill | Always-In direction call, pattern evolution assessment, signal bar quality in context, Trader's Equation probability, final conviction score (subtotal + adjustments), entry management (scalp vs swing) |
+
+**The engine computes what it can from OHLCV data. The agent applies Brooks' context-dependent judgment where the data can't.** See `tier2-routing.md` for Stage 2 decision rules.
+
+### Known Limitations
+
+- **No intraday / opening range data** — Brooks heavily emphasizes the first 30-min/hour high/low as key magnets. The framework uses daily/weekly/H4 only. The agent should note this gap in analyses.
+- **H4 timeframe fetched but not analyzed by engine** — H4 data exists in the output for agent reference but brooks_analysis.py only processes daily. The agent should cross-check H4 structure manually.
+- **Swing detection is primitive** — the built-in swing finder misses double tops/bottoms and equal extremes. Measured moves and leg structure are approximate.
+- **Volume signs (SoS 20-22) are weakly computed** — volume data quality varies by instrument (crypto volume differs from stocks). Take these signs with caution.
+- **Climax is identified retroactively** — the engine flags potential climax bars (body ≥75%, range >1.8× avg) but true climax can only be confirmed after the fact. The agent must verify.
+```
+
 ### Loading Rules
 - **Always loaded:** `book1-trends.md` — trend trading is the default framework
 - **On-demand:** `book2-ranges.md` — load ONLY when market is in or near a trading range
@@ -61,8 +81,8 @@ Every LONG/SHORT verdict must include a conviction score. Use this rubric:
 | Signs of Strength count | At least 12 signs | +1 |
 | Signs of Strength count | At most 5 signs | -1 |
 | Second entry | Second attempt at same setup | +1 |
-| R:R ratio | At least 1:3 | +1 |
-| R:R ratio | Under 1:1 | -1 |
+| R:R ratio (agent-assessed) | At least 1:3 | +1 |
+| R:R ratio (agent-assessed) | Under 1:1 | -1 |
 | Bar counting | H2/L2 at 20-EMA (standard setup) | +1 |
 | Bar counting | H1/L1 (first pullback, less reliable) | 0 |
 | Bar counting | Breakout entry (early trend) | +1 |
@@ -71,6 +91,8 @@ Every LONG/SHORT verdict must include a conviction score. Use this rubric:
 | Day type | Strong trend day | +1 |
 | Day type | Trading range day (fade extremes only) | 0 |
 | Day type | Barbwire | -2 |
+
+> **Note:** Fields marked *(agent-assessed)* are computed by the Stage 2 agent, not by the Tier-1 engine. The engine does not compute R:R ratios from OHLCV data — the agent must assess signal bar location and entry price to determine risk/reward.
 
 ### Conviction Verdicts
 
@@ -91,64 +113,24 @@ Every LONG/SHORT verdict must include a conviction score. Use this rubric:
 
 ## Execution Mode — Choose ONE
 
-The skill supports two execution modes. **Use the inline pipeline for frictionless single-ticker analysis. Use sub-agents for batch scans.**
+The skill supports two execution modes. **Use the `--analyze` flag for frictionless single-ticker analysis. Use sub-agents for batch scans.**
 
-### MODE 1: Inline Pipeline (Primary — 0 approval prompts)
+### MODE 1: Single-Ticker Pipeline (Primary — 0 approval prompts)
 
 For single-ticker analysis. Run the ENTIRE pipeline in ONE `terminal()` call. No sub-agents, no `execute_code`, no intermediate files:
 
 ```bash
-python3 -c "
-import sys, asyncio, json
-sys.path.insert(0, '/home/hermes/.hermes/profiles/analyst/skills/trading/price-action-al-brooks/scripts')
-from fetch_data import analyze_ticker
-from brooks_analysis import analyze as brooks_analyze
-
-data = asyncio.run(asyncio.wait_for(analyze_ticker('TICKER'), timeout=45))
-
-# For tickers not on NASDAQ, pass exchange= hint:
-#   data = asyncio.run(asyncio.wait_for(analyze_ticker('BB', exchange='TSX'), timeout=45))
-#   data = asyncio.run(asyncio.wait_for(analyze_ticker('BP', exchange='LSE'), timeout=45))
-
-# Save indicators before stripping
-price = data['indicators']['close']
-ema20 = data['indicators'].get('ema20', None)
-atr = data['indicators'].get('atr', None)
-perf = data.get('performance', {})
-
-# Strip non-Brooks fields
-del data['indicators']
-del data['performance']
-
-# Run brooks analysis
-analysis = brooks_analyze(data)
-
-# Build compact output
-bars = {}
-cls = {}
-for tf in ['daily', 'weekly', 'h4']:
-    if tf in data['timeframes']:
-        bars[tf] = data['timeframes'][tf][-20:]
-    if tf in data.get('analysis', {}):
-        cls[tf] = data['analysis'][tf].get('last_10_bars_classified', [])
-        if 'patterns' in data['analysis'][tf]:
-            cls[tf + '_patterns'] = data['analysis'][tf]['patterns']
-        if 'bar_analysis' in data['analysis'][tf]:
-            cls[tf + '_bar_analysis'] = data['analysis'][tf]['bar_analysis']
-        if 'trend_context' in data['analysis'][tf]:
-            cls[tf + '_trend_context'] = data['analysis'][tf]['trend_context']
-
-print(json.dumps({
-    'price': price, 'ema20': ema20, 'atr': atr,
-    'performance': perf, 'analysis': analysis,
-    'bars': bars, 'classifications': cls
-}, default=str))
-"
+python3 /home/hermes/skill_backup/price-action-al-brooks/scripts/fetch_data.py --analyze TICKER
+# Or with exchange hint:
+python3 /home/hermes/skill_backup/price-action-al-brooks/scripts/fetch_data.py --analyze --exchange TSX BB
+python3 /home/hermes/skill_backup/price-action-al-brooks/scripts/fetch_data.py --analyze --exchange LSE BP
 ```
 
-> **⚠️ Path note:** The inline pipeline path above is correct for the **analyst** profile on this system. On other profiles, resolve dynamically with `skill_view('price-action-al-brooks')` or `dirname $(find ~/.hermes -path '*/price-action-al-brooks/scripts/fetch_data.py' -print -quit)`.
+The `--analyze` flag runs fetch + brooks_analysis in one shot, saves the output to `scripts/{TICKER}_brooks_analysis.json`, and prints to stdout. The inline pipeline is no longer embedded — the authoritative code lives in `fetch_data.py` not in this doc.
 
-**⚠️ Timeout handling:** `fetch_data.py` can hang when tvkit/TradingView WebSocket is slow (common on IDX tickers). The one-shot pipeline above uses `asyncio.wait_for` with a 45s timeout.
+> **⚠️ Path note:** The paths above point to the skill backup directory. On a deployed profile, use the actual skill path under `~/.hermes/profiles/<profile>/skills/`. Resolve dynamically with `skill_view('price-action-al-brooks')` or `dirname $(find ~/.hermes -path '*/price-action-al-brooks/scripts/fetch_data.py' -print -quit)`.
+
+> **⚠️ Timeout handling:** `fetch_data.py` can hang when tvkit/TradingView WebSocket is slow (common on IDX tickers). If the default timeout is insufficient, run with `timeout 90`.
 
 **⚠️ If the pipeline fails: DO NOT fall back to cached data without asking the user.** Stale cache produces analyses that waste time and erode trust. Instead:
 1. Check the error — if it's a `resolve error`, the exchange prefix is likely wrong (see Exchange Prefix Resolution below)

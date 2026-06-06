@@ -110,6 +110,7 @@ Start with `conviction_objective.subtotal`, then adjust:
 | Countertrend (if taking it despite warnings) | −2 |
 | H4 timeframe aligns with daily | +1 |
 | H4 timeframe contradicts | −1 |
+| Consecutive signals of same type | −1 (if 3rd+ similar signal without recent win) |
 
 **Final score → verdict:**
 - ≥ +4 → HIGH conviction (full position, swing target)

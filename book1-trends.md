@@ -16,7 +16,7 @@
 
 | Type | Structure | MA Alignment | Bars | Pullbacks |
 |------|-----------|-------------|------|-----------|
-| **Bull trend** | HH + HL | SMA8 > SMA20 > SMA50, price > 20-EMA | Majority bull trend bars (body ≥60%) | Shallow, 1-2 legs |
+| **Bull trend** | HH + HL | 20-EMA > SMA50, price above 20-EMA | Majority bull trend bars (body ≥60%) | Shallow, 1-2 legs |
 | **Bear trend** | LH + LL | Reverse | Majority bear trend bars | Shallow |
 | **Trading range** | Overlapping | 20-EMA flat | Alternating direction | N/A — fade extremes |
 

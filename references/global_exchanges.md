@@ -1,15 +1,17 @@
 # Global Exchange Registry
 
-Source: `fetch_data.py` → `GLOBAL_EXCHANGES` dict (truth). Updated June 2026.
+> **Source of truth:** `scripts/fetch_data.py` → `GLOBAL_EXCHANGES` dict.
+> This file is a human reference only. For the authoritative list, read the code.
 
 ## Exchange Codes
 
-| Code | Exchange Name | Region | tvkit Prefix | Example Ticker |
-|------|--------------|--------|-------------|----------------|
+| Code | Exchange Name | Region (API) | tvkit Prefix | Example Ticker |
+|------|--------------|-------------|-------------|----------------|
 | `NASDAQ` | NASDAQ (US) | `america` | `NASDAQ:` | AAPL |
 | `NYSE` | New York Stock Exchange | `america` | `NYSE:` | BRK.B |
-| `TSX` | Toronto Stock Exchange | `canada` | `TSX:` | BB (BlackBerry) |
-| `TSXV` | TSX Venture Exchange | `canada` | `TSXV:` | ACB |
+| `TSX` | Toronto Stock Exchange | `america` | `TSX:` | BB (BlackBerry) |
+| `TSXV` | TSX Venture Exchange | `america` | `TSXV:` | ACB |
+| `B3` | B3 (Brazil) | `america` | `B3:` | PETR4 |
 | `LSE` | London Stock Exchange | `europe` | `LSE:` | BP |
 | `EURONEXT` | Euronext | `europe` | `EURONEXT:` | AIR |
 | `XETRA` | Xetra (Deutsche Börse) | `europe` | `XETRA:` | SAP |
@@ -17,12 +19,11 @@ Source: `fetch_data.py` → `GLOBAL_EXCHANGES` dict (truth). Updated June 2026.
 | `TSE` | Tokyo Stock Exchange | `asia` | `TSE:` | 7203 (Toyota) |
 | `HKEX` | Hong Kong Exchange | `asia` | `HKEX:` | 0700 (Tencent) |
 | `SGX` | Singapore Exchange | `asia` | `SGX:` | D05 (DBS) |
-| `ASX` | Australian Securities Exchange | `asia` | `ASX:` | CBA |
+| `ASX` | Australian Securities Exchange | `australia` | `ASX:` | CBA |
 | `KRX` | Korea Exchange | `asia` | `KRX:` | 005930 (Samsung) |
 | `BSE` | Bombay Stock Exchange | `asia` | `BSE:` | RELIANCE |
 | `NSE` | National Stock Exchange (India) | `asia` | `NSE:` | TCS |
-| `IDX` | Indonesia Stock Exchange | `asia` | `IDX:` | BBRI (BBRI.JK) |
-| `B3` | B3 (Brazil) | `america` | `B3:` | PETR4 |
+| `IDX` | Indonesia Stock Exchange | `indonesia` | `IDX:` | BBRI (BBRI.JK) |
 | `BINANCE` | Binance crypto | `crypto` | `BINANCE:` | BTCUSDT |
 | `COINBASE` | Coinbase crypto | `crypto` | `COINBASE:` | BTC-USD |
 | `TVC` | TradingView Community (commodities) | `commodity` | `TVC:` | GOLD, SILVER |

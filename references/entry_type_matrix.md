@@ -11,7 +11,7 @@
 | **Early Trend** | Fresh breakout from TR, first legs | Breakout 3-15 bars ago. No pullback yet. Breakout bars strong (big bodies, small tails). |
 | **Mid Trend** | Clean HH/HL with orderly pullbacks | 2-3 legs. Pullbacks shallow (25-40%). SOS high (14+/22). |
 | **Late Trend** | Momentum slowing, overlap increasing | Bars smaller. Tails appearing. SOS dropping. Wedges forming. Pullbacks deeper (50%+). |
-| **Climax** | Parabolic, 20%+ from EMA, exhaustion | 20%+ above 20-EMA. Massive bars. Gap openings. Exhaustion imminent. |
+| **Climax Zone / Exhaustion** | (event, not phase — can occur in any trend stage) | Identified RETROSPECTIVELY after it fails. Signs: 3+ consecutive strong trend bars, bars with body ≥80%, range >1.8× trailing avg, MA gap bars forming. |
 | **Transition to TR** | Failed breakouts both ways | Breakouts fail. Tails both sides. Prior trend lines broken. |
 | **Trading Range** | Overlap, tails, no direction | Clear S/R. Oscillation. No HH/HL or LH/LL. |
 
@@ -43,7 +43,7 @@
 | 3rd | Pullback to EMA (scalp only) | Only as scalp. Trend may reverse. |
 | ❌ | Swing with-trend entry | Too late. Catching the tail. |
 
-### CLIMAX — Do Not Chase
+### CLIMAX ZONE / EXHAUSTION — Do Not Chase, Identify Retrospectively
 
 | Priority | Entry | Why |
 |----------|-------|-----|
@@ -67,15 +67,15 @@
 | **Early Trend** | Breakout entry | Micro-channel | Wait for EMA pullback |
 | **Mid Trend** | Pullback (M2B/M2S) | Micro-channel | Fade the trend |
 | **Late Trend** | Wedge reversal / FBO | Channel break reversal | Swing with-trend |
-| **Climax** | Climax reversal / L2 | Pullback to EMA (WAIT) | Chase spike |
+| **Climax Zone / Exhaustion** | Climax reversal / L2 | Pullback to EMA (WAIT) | Chase spike |
 | **Trading Range** | Range edge reversal | FBO | Create fake breakouts |
 
 ## 4. Anti-Bias Checklist
 
 Before writing ANY entry recommendation, ask yourself:
 
-- [ ] Did I classify the trend phase? Not just "trending" but specifically early/mid/late/climax?
+- [ ] Did I classify the trend phase? Not just "trending" but specifically early/mid/late/transition?
 - [ ] Did I consider at least 2 entry types OTHER than pullback-to-EMA?
 - [ ] Is my recommendation based on the phase, or just habit?
 - [ ] If this is an early trend, am I recommending breakout entry instead of pullback?
-- [ ] If this is a climax, am I recommending reversal/FBO instead of "wait for pullback"?
+- [ ] If I detect climax signs (3+ consecutive strong bars, expanding range), am I recommending reversal/FBO instead of "wait for pullback"?
