@@ -10,9 +10,9 @@ description: "Two-stage price action analysis per Al Brooks' Trading Price Actio
 ```
 skills/price-action-al-brooks/
 ├── SKILL.md              ← This file (router + workflow)
-├── core.md               ← Universal price action (~13KB — ALWAYS loaded)
+├── core.md               ← Universal price action (~20KB — ALWAYS loaded)
 ├── trends.md             ← Trend-specific rules (~14KB — load when trending)
-├── ranges.md             ← Trading range rules (~30KB — load when ranging)
+├── ranges.md             ← Trading range rules (~20KB — load when ranging)
 
 ├── tier2-routing.md      ← Tier-2 agent decision guide (~50 lines, replaces full book reading)
 └── scripts/
@@ -44,9 +44,9 @@ This skill uses a three-tier knowledge loading system driven by the Tier-1 engin
 
 | Tier | File | Size | When to Load |
 |------|------|------|-------------|
-| **Core** | `core.md` | ~13KB | **ALWAYS** — bar anatomy, bar counting, breakouts, close, EMA, risk management, glossary |
+| **Core** | `core.md` | ~20KB | **ALWAYS** — bar anatomy, bar counting, breakouts, close, EMA, risk management, trade management, glossary |
 | **Trends** | `trends.md` | ~14KB | When `day_type.hypothesis` ∈ {`strong_bull`, `strong_bear`, `tfo_bull`, `tfo_bear`} |
-| **Ranges** | `ranges.md` | ~30KB | When `day_type.hypothesis` ∈ {`trading_range`, `barbwire`} |
+| **Ranges** | `ranges.md` | ~20KB | When `day_type.hypothesis` ∈ {`trading_range`, `barbwire`} |
 
 **When `ambiguous` or `insufficient_data`:** Load core.md ONLY. Agent should WAIT until structure clarifies before committing to a direction.
 

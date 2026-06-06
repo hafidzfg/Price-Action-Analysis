@@ -192,26 +192,162 @@ TP3: xxx  (R:R ~x:x)
 
 ## 9. Risk & Trade Management
 
+### Stop Placement
+
 | Element | Rule |
 |---------|------|
-| **Stop** | 1 tick beyond signal bar extreme |
-| **Scaling** | Scalp portion + swing portion |
-| **Swing target** | Measured move of prior leg |
-| **Scalp target** | At breakeven or 1× risk |
-| **Breakeven stop** | Move after 1× risk secured |
-| **Trailing stop** | Below prior swing low (bull) / above prior swing high (bear) |
-| **Late entry** | Same stop as original entry |
-| **Max loss** | Defined by Trader's Equation, not fixed |
+| **Initial stop** | 1 tick beyond signal bar extreme |
+| **After strong entry bar** | Tighten to 1 tick beyond entry bar |
+| **Doji entry bar** | Keep original stop (doji = one-bar TR, don't exit below TR in bull trend) |
+| **Large signal bar** | Money management stop (e.g., 8 ticks on Emini 5-min) or ~70% of signal bar height |
+| **Very large bars** | Reduce position size; risk about height of bar |
 
-**Trader's Equation:** Only take a trade when prob × reward > (1 − prob) × risk. If probability is 60%, don't take profit until market has moved at least as far as your risk. Most traders should swing, not scalp — scalping requires ~70% win rate.
+### Trailing Stops in Trends
 
-**Don't change plans mid-trade.** Swing traders who scalp out after losses miss the big wins they need. Scalpers who swing after watching a trade become a trend get stopped out on the next trade.
+- Trail below most recent swing low (bull) / above most recent swing high (bear).
+- Move to breakeven after market moves ~halfway to profit target.
+- When trend transitions to TR → stop trailing, take partials at range extremes instead.
+- **Don't tighten to below a doji entry bar** — 50/50 it gets hit.
 
-**In strong trends:** Trail stop below most recent swing low. Raise to breakeven after pullback tests entry then new high. Don't tighten to below a doji entry bar — 50/50 it gets hit.
+### Wide Stops
+
+- Some traders use wide stops (e.g., 5 points in Emini) and enter when they think trend is resuming, accepting early entries.
+- Wide stop + with-trend = probability ≥60%, reward ≈ risk → positive trader's equation.
+- As market moves in your direction, tighten stop to reduce risk.
+- Stop size is often set by the first trade of the day — note how many ticks market went against that first winner.
+
+### Profit Taking
+
+- **Scalpers:** OCO orders — protective stop + profit target limit. Check account after every entry/exit.
+- **Swinging in strong trend:** Take ~half off at 2× initial risk. Trail stop on remainder. Take another quarter at 3× risk. Let last quarter run until clear reversal or close.
+- **Swinging in TR:** Take profits at opposite side of range. Don't rely on trailing stops — pullbacks will swing below prior lows.
+- **Reward often equals risk:** Market frequently rewards as many ticks of profit as it forces you to risk. Place limit order 1-2 ticks short of risk amount.
+- **Profit target = flip side of protective stop.** Forces you to take profits while trader's equation is still positive.
+- **Don't change plans mid-trade.** Swing traders who scalp out after losses miss big wins. Scalpers who swing after watching a trend get stopped out on next trade.
+
+### Scaling
+
+- **Scaling out:** Half at 2× risk, quarter at 3× risk, let rest run. Or scalp portion + swing portion with BE stop.
+- **Scaling in (with-trend only):** Small position on first entry, add if market continues against you and premise is still valid. Never add to losing countertrend position.
+- If market makes second move against you (e.g., low 2 in bear when long) → exit or reverse.
+- Must have a plan before entering: know final stop, average entry price, total risk.
+
+### General Rules
+
+- **Always have a protective stop working in the market**, not just in your head.
+- If your premise is no longer valid, exit — even with a loss.
+- **Trader's Equation changes every tick.** If still favorable but weaker → tighten stop or take smaller profit. If marginal → exit ASAP. If negative → exit at market immediately.
+- Halfway to target → breakeven stop. **TR: do NOT trail** — take partials.
 
 ---
 
-## 10. ETFs and Inverse Charts
+## 10. Entering on Stops
+
+**Entering on a stop is the single most reliable entry approach.** The market is moving in your direction as you enter, increasing chances of a profitable trade. Beginners should restrict themselves to stop entries until consistently profitable.
+
+### How It Works
+- Place buy stop 1 tick above signal bar high (or sell stop 1 tick below signal bar low).
+- Entry bar = bar where order fills. After it closes: if strong body → tighten stop to 1 tick beyond entry bar. If doji → keep stop above signal bar.
+- **Scalping math:** In Eminis, usually need a 6-tick move beyond signal bar to net a 4-tick scalp (1 tick for entry beyond + 4 ticks profit + 1 tick for limit fill beyond).
+
+### When to Use Stops vs Limits
+| Situation | Entry |
+|-----------|-------|
+| Strong spike | Stop (direction) or Market |
+| Channel (early, 1-10 bars) | Stop on H1/H2/L1/L2 pullbacks |
+| Channel (maturing, 10+ bars) | Limit (fade extremes) or Stop (pullbacks) |
+| Channel (late, 20+ bars) | Limit opposite (take profits, fade) |
+| TR day | Limit (buy low, sell high) |
+| Pullback in trend | Stop (confirmation) |
+| Beginners | Stop only |
+
+---
+
+## 11. Entering on Limits
+
+Limit entries = betting that a move will fail and reverse. More setups than stop entries (~2:1), but riskier and harder to take emotionally. **Until consistently profitable, use stops only.**
+
+### Key Limit Entry Scenarios
+
+**In strong spikes:**
+- Buy at close of prior strong bull trend bar in a strong bull spike.
+- Buy at/below low of prior bar in strong bull spike.
+- Sell at close of prior strong bear trend bar in strong bear spike.
+- Sell at/above high of prior bar in strong bear spike.
+
+**At BO points:**
+- Buy just above high of bar before bull BO bar (anticipating measuring gap).
+- Sell just below low of bar before bear BO bar.
+
+**In channels:**
+- Buy below low of prior bar in bull channel (early stages).
+- Sell above high of prior bar in bear channel (early stages).
+- Late-stage bull channel: sell above high of prior bar and above recent swing high.
+- Late-stage bear channel: buy below low of prior bar and below recent swing low.
+
+**At climaxes:**
+- Buy at close of large bear trend bar at likely sell climax, also below its low and at close of next bar.
+- Sell at close of large bull trend bar at likely buy climax, also above its high and at close of next bar.
+
+**In TRs:**
+- Buy at/below prior swing low at bottom of range.
+- Sell at/above prior swing high at top of range.
+
+**In pullbacks:**
+- Buy on pullback to steeply rising MA, scale in at intervals below.
+- Sell on pullback to steeply falling MA, scale in at intervals above.
+- Buy a 60-70% pullback from current high, risking to lower low (reward ≈ 2× risk, prob ≈ 60%).
+
+**Fading failed patterns:**
+- In strong bull trend, fade short scalps — buy on limit 2-3 ticks above where short scalpers take profit.
+- In strong bear trend, fade long scalps — sell on limit 2-3 ticks below where long scalpers take profit.
+- Buy below low 1/2 weak signal bar at bottom of TR or new bull trend after strong reversal.
+- Sell above high 1/2 weak signal bar at top of TR or new bear trend after strong reversal.
+
+### General Rules
+- A strong spike alone is NOT enough reason to enter on limit — consider context (could be exhaustive climax).
+- **In strong bull trend:** low 1 and low 2 signals don't exist — they are only traps. Buy below them instead.
+- **In strong bear trend:** high 1 and high 2 signals don't exist — sell above them.
+
+---
+
+## 12. Scalp vs Swing
+
+| Type | Hold | Profit | Prob | When |
+|------|------|--------|------|------|
+| Scalp | 1-15 min | ≈ risk | 67%+ needed | Obvious, high-prob |
+| Swing | 15 min–full day | ≥ 2× risk | 40-50% | Unclear/scary |
+
+Obvious → scalp. Unclear/scary → swing. Best: scalp part + swing balance with BE stop.
+
+---
+
+## 13. Need Two Reasons
+
+Always have ≥2 reasons before entering.
+
+**Valid:** Signal bar, MA pullback (H2/L2), BO pullback, pullback in always-in market, S/R test, dueling lines, H2/L2 in context, DB/DT, wedge/final flag, any failure, second entry.
+
+**One reason only:** (1) Strong trend (2) TL overshoot + good reversal bar (3) Second entry.
+
+---
+
+## 14. Trader's Equation
+
+> `prob × reward > (1 − prob) × risk`
+
+| Win Rate | Min Reward | Setups |
+|----------|-----------|--------|
+| 70%+ | ≥ 0.5× risk | High-prob scalps (rare) |
+| 60%+ | ≥ risk (prefer 2×) | Pullbacks in trends, BO pullbacks |
+| ~50% | ≥ 2× risk | TR entries, fading BOs |
+| ≤40% | ≥ 2-3× risk | Reversal tops/bottoms |
+
+Confident → 60%. Uncertain → 50% — don't take unless reward >> risk. **Never** reward < risk unless 80%+ win rate.
+
+---
+
+## 15. ETFs and Inverse Charts
 
 **SPY** ≈ Emini chart, sometimes clearer due to smaller tick size. **SDS** (UltraShort S&P 500, 2× inverse) — if a bull flag on Emini looks like a rounding bottom on SDS, don't buy the flag.
 
@@ -219,7 +355,7 @@ TP3: xxx  (R:R ~x:x)
 
 ---
 
-## 11. Glossary
+## 16. Glossary
 
 | Term | Definition |
 |------|------------|
