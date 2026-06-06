@@ -13,7 +13,7 @@ skills/price-action-al-brooks/
 ├── core.md               ← Universal price action (~13KB — ALWAYS loaded)
 ├── trends.md             ← Trend-specific rules (~14KB — load when trending)
 ├── ranges.md             ← Trading range rules (~30KB — load when ranging)
-├── book1-trends.md       ← Legacy: full Book 1 distillation (reference only)
+
 ├── tier2-routing.md      ← Tier-2 agent decision guide (~50 lines, replaces full book reading)
 └── scripts/
     ├── fetch_data.py     ← Multi-timeframe OHLCV + indicators + pattern detection
@@ -321,5 +321,4 @@ This skill is not a suggestion pile. Every step — execution mode, analysis for
 - Core: Universal price action (bar anatomy, counting, breakouts, close, EMA, risk) — `core.md`
 - Book 1: Trends (26 chapters) — `trends.md` (load when trending)
 - Book 2: Trading Ranges (32 chapters) — `ranges.md` (load when ranging)
-- Legacy: Full Book 1 distillation — `book1-trends.md` (reference only, not loaded by workflow)
 
