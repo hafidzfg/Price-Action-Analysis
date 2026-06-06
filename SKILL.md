@@ -174,6 +174,12 @@ The `--analyze` flag runs fetch + brooks_analysis in one shot, saves the output 
 
 **CRITICAL:** Do NOT use `execute_code` or pipe `curl | python3` — both trigger approval prompts. Use the one-shot `terminal()` call above. Zero prompts.
 
+**⚠️ MODEL ROUTING — STAGE 2 DEEP DIVES:** Do NOT use `delegate_task` for price action deep dives. `delegate_task` runs on the cheap model (deepseek-v4-flash-free) and produces verbose, weak analysis that misses nuance (no scenario breakdown, no factor matrix, premature conviction scoring). Instead, route to `analyst-deep` (mimo v2.5 pro) using the CLI pattern:
+```bash
+timeout 300 hermes -p analyst-deep chat -q '<self-contained task with all Tier-1 engine data>' -Q
+```
+The `-Q` suppresses banner/spinner. The `-q` is one-shot mode. analyst-deep returns surgical, structured output with proper contingency planning. **Violating this rule wastes tokens and erodes trust.** If caught using delegate_task for deep analysis, the file must be re-run through analyst-deep and overwritten.
+
 ### MODE 2: Sub-agent Workflow (for batch scanning)
 
 For scanning multiple tickers in parallel, use sub-agents as Stage 1 and Stage 2 runners:
