@@ -8,7 +8,7 @@ description: "Two-stage price action analysis per Al Brooks' Trading Price Actio
 ## Modular File Structure
 
 ```
-skills/price-action/
+skills/price-action-al-brooks/
 ├── SKILL.md              ← This file (router + workflow)
 ├── book1-trends.md       ← Trend trading rules (Book 1 — always loaded)
 ├── book2-ranges.md       ← Trading range rules (Book 2 — load on-demand)
