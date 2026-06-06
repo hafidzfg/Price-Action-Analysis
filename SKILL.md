@@ -1,6 +1,6 @@
 ---
 name: price-action-al-brooks
-description: "Two-stage price action analysis per Al Brooks' Trading Price Action series. Stage 1 scan to Stage 2 deep dive. Brooks terminology only — no Elliott Wave / Wyckoff / SMC. Three-tier loading: Core (always, ~13KB) + Trends or Ranges (engine-driven, ~14-16KB)."
+description: "Two-stage price action analysis per Al Brooks' Trading Price Action series. Stage 1 scan to Stage 2 deep dive. Brooks terminology only — no Elliott Wave / Wyckoff / SMC. Four-tier loading: Core (always, ~22KB) + Trends or Ranges (engine-driven, ~14-20KB) + Reversals (when signals detected, ~24KB)."
 ---
 
 # Price Action — Al Brooks Framework
@@ -10,9 +10,10 @@ description: "Two-stage price action analysis per Al Brooks' Trading Price Actio
 ```
 skills/price-action-al-brooks/
 ├── SKILL.md              ← This file (router + workflow)
-├── core.md               ← Universal price action (~20KB — ALWAYS loaded)
+├── core.md               ← Universal price action (~22KB — ALWAYS loaded)
 ├── trends.md             ← Trend-specific rules (~14KB — load when trending)
 ├── ranges.md             ← Trading range rules (~20KB — load when ranging)
+├── reversals.md          ← Reversal patterns (~24KB — load when reversal signals detected)
 
 ├── tier2-routing.md      ← Tier-2 agent decision guide (~50 lines, replaces full book reading)
 └── scripts/
@@ -40,13 +41,14 @@ This skill uses a three-tier knowledge loading system driven by the Tier-1 engin
 - **Climax is identified retroactively** — the engine flags potential climax bars (body ≥75%, range >1.8× avg) but true climax can only be confirmed after the fact. The agent must verify.
 ```
 
-### Three-Tier Loading (Engine-Driven)
+### Four-Tier Loading (Engine-Driven)
 
 | Tier | File | Size | When to Load |
 |------|------|------|-------------|
-| **Core** | `core.md` | ~20KB | **ALWAYS** — bar anatomy, bar counting, breakouts, close, EMA, risk management, trade management, glossary |
+| **Core** | `core.md` | ~22KB | **ALWAYS** — bar anatomy, bar counting, breakouts, close, EMA, risk management, trade management, time frames, glossary |
 | **Trends** | `trends.md` | ~14KB | When `day_type.hypothesis` ∈ {`strong_bull`, `strong_bear`, `tfo_bull`, `tfo_bear`} |
 | **Ranges** | `ranges.md` | ~20KB | When `day_type.hypothesis` ∈ {`trading_range`, `barbwire`} |
+| **Reversals** | `reversals.md` | ~24KB | When reversal signals detected: trend line break + test of extreme, consecutive climaxes, wedge overshoot, final flag breakout, expanding triangle. **Overlay** — loads alongside state module. |
 
 **When `ambiguous` or `insufficient_data`:** Load core.md ONLY. Agent should WAIT until structure clarifies before committing to a direction.
 
@@ -55,14 +57,34 @@ This skill uses a three-tier knowledge loading system driven by the Tier-1 engin
 | Engine Output | Knowledge Modules | Agent Action |
 |---|---|---|
 | `strong_bull` / `strong_bear` | core + trends | With-trend entries only. High conviction setups. |
+| `strong_bull` + reversal signals | core + trends + reversals | With-trend primary, but watch for reversal setup at test of extreme. |
 | `tfo_bull` / `tfo_bear` | core + trends | Trend from Open — aggressive with-trend, swing portion. |
+| `tfo_bull` / `tfo_bear` + reversal signals | core + trends + reversals | With-trend primary, watch for opening reversal at support/resistance. |
 | `trading_range` | core + ranges | Fade extremes. WAIT for edge of range. No with-trend bias. |
+| `trading_range` + reversal signals | core + ranges + reversals | Fade extremes. Watch for final flag reversals at range edges. |
 | `barbwire` | core + ranges | FORGET most setups. Only fade strong extremes at range edges. |
 | `ambiguous` | core only | WAIT. No clear direction. Let the market tip its hand. |
 | `insufficient_data` | core only | WAIT. Not enough bars for classification. |
 
+### Reversal Signal Detection
+
+Load `reversals.md` when ANY of these conditions are present:
+- **Trend line break** followed by test of trend extreme
+- **Consecutive climaxes** (2+ large trend bars with little pullback)
+- **Wedge overshoot** of trend channel line
+- **Final flag breakout** that quickly reverses
+- **Expanding triangle** forming (5+ swings, each greater)
+- **Always-in direction flipping** with strong follow-through
+- **Opening reversal** at key support/resistance
+
 ### Never Load Both trends.md AND ranges.md
 Unless the engine output explicitly shows a transition (e.g., `trading_range` with `strong_bull` as alternative), load only ONE specialist module. The core.md provides the universal foundation that applies in both states.
+
+### Reversals.md Is an Overlay
+Unlike trends.md and ranges.md (which are mutually exclusive state modules), reversals.md is an **event overlay** that loads alongside the current state module:
+- **core + trends + reversals** — trending market with reversal signals
+- **core + ranges + reversals** — ranging market with reversal signals
+- **core + reversals** — ambiguous state but reversal signals present
 
 ---
 

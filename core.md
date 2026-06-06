@@ -355,7 +355,33 @@ Confident → 60%. Uncertain → 50% — don't take unless reward >> risk. **Nev
 
 ---
 
-## 16. Glossary
+## 16. Time Frames and Chart Types
+
+### Multi-Timeframe Relationships
+
+- **5-minute chart** = primary day trading chart.
+- **1-minute chart** = fine-tuning entries. Too much noise for most traders.
+- **15-minute chart** = broader context.
+- **60-minute chart** = trend direction.
+- **Daily chart** = major support/resistance.
+
+### Key Relationships
+
+- **Micro patterns on 5-minute = patterns on 1-minute.**
+- **Patterns on 5-minute = micro patterns on 60-minute.**
+- **Reversal on 5-minute may be pullback on 60-minute.**
+- **Always trade in direction of higher time frame trend** when possible.
+
+### Chart Types
+
+- **Time-based** (5-minute, etc.) = standard. Most Brooks analysis uses these.
+- **Tick charts** = number of trades. Useful for very active markets.
+- **Volume charts** = number of contracts. Useful for comparing instruments.
+- **Range bars** = fixed point range. Remove time element.
+
+---
+
+## 17. Glossary
 
 | Term | Definition |
 |------|------------|
