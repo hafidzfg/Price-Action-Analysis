@@ -9,3 +9,4 @@ scripts/*.json
 # OS
 .DS_Store
 Thumbs.db
+prompt-book3-distill.md
