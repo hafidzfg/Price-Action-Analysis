@@ -7,7 +7,7 @@ A two-tier price action analysis framework based on Al Brooks' *Trading Price Ac
 ```
 ├── SKILL.md               ← Workflow router & two-tier orchestration
 ├── book1-trends.md        ← Trend trading rules
-├── book2-ranges.md        ← Trading range rules
+├── ranges.md              ← Trading range rules
 ├── tier2-routing.md       ← Tier-2 agent decision guide
 ├── references/
 │   ├── entry_type_matrix.md   ← Trend phase → entry type mapping

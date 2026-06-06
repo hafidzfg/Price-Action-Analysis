@@ -7,7 +7,7 @@
 >
 > The three-tier routing is driven by the Tier-1 engine (`brooks_analysis.py`) output:
 > - `strong_bull`/`strong_bear`/`tfo_bull`/`tfo_bear` → core + trends
-> - `trading_range`/`barbwire` → core + book2-ranges
+> - `trading_range`/`barbwire` → core + ranges
 > - `ambiguous`/`insufficient_data` → core only (WAIT)
 >
 > See `SKILL.md` for the full routing table.
