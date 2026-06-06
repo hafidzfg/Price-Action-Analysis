@@ -1,6 +1,6 @@
 ---
 name: price-action-al-brooks
-description: "Two-stage price action analysis per Al Brooks' Trading Price Action series. Stage 1 scan to Stage 2 deep dive. Brooks terminology only — no Elliott Wave / Wyckoff / SMC. Modular design: Book 1 (Trends) always loaded, Book 2 (Ranges) loaded on-demand."
+description: "Two-stage price action analysis per Al Brooks' Trading Price Action series. Stage 1 scan to Stage 2 deep dive. Brooks terminology only — no Elliott Wave / Wyckoff / SMC. Three-tier loading: Core (always, ~13KB) + Trends or Ranges (engine-driven, ~14-16KB)."
 ---
 
 # Price Action — Al Brooks Framework
@@ -10,8 +10,10 @@ description: "Two-stage price action analysis per Al Brooks' Trading Price Actio
 ```
 skills/price-action-al-brooks/
 ├── SKILL.md              ← This file (router + workflow)
-├── book1-trends.md       ← Trend trading rules (Book 1 — always loaded)
-├── book2-ranges.md       ← Trading range rules (Book 2 — load on-demand)
+├── core.md               ← Universal price action (~13KB — ALWAYS loaded)
+├── trends.md             ← Trend-specific rules (~14KB — load when trending)
+├── book2-ranges.md       ← Trading range rules (~16KB — load when ranging)
+├── book1-trends.md       ← Legacy: full Book 1 distillation (reference only)
 ├── tier2-routing.md      ← Tier-2 agent decision guide (~50 lines, replaces full book reading)
 └── scripts/
     ├── fetch_data.py     ← Multi-timeframe OHLCV + indicators + pattern detection
@@ -20,7 +22,7 @@ skills/price-action-al-brooks/
 
 ### Two-Tier Architecture
 
-This skill is split into two tiers. Understand the boundary:
+This skill uses a three-tier knowledge loading system driven by the Tier-1 engine output.
 
 | Tier | What | Who | What it produces |
 |------|------|-----|-----------------|
@@ -38,18 +40,29 @@ This skill is split into two tiers. Understand the boundary:
 - **Climax is identified retroactively** — the engine flags potential climax bars (body ≥75%, range >1.8× avg) but true climax can only be confirmed after the fact. The agent must verify.
 ```
 
-### Loading Rules
-- **Always loaded:** `book1-trends.md` — trend trading is the default framework
-- **On-demand:** `book2-ranges.md` — load ONLY when market is in or near a trading range
-- **Never load both** unless context explicitly requires it (e.g., trend to TR transition)
+### Three-Tier Loading (Engine-Driven)
 
-### When to Load Book 2
-Load `book2-ranges.md` when ANY of these are true:
-- Day type classified as Trading Range or Barbwire
-- Always-in direction is unclear/neutral
-- Price is between 20-EMA and 50-SMA with no clear trend
-- Multiple failed breakouts in recent bars
-- User asks about range-bound ticker
+| Tier | File | Size | When to Load |
+|------|------|------|-------------|
+| **Core** | `core.md` | ~13KB | **ALWAYS** — bar anatomy, bar counting, breakouts, close, EMA, risk management, glossary |
+| **Trends** | `trends.md` | ~14KB | When `day_type.hypothesis` ∈ {`strong_bull`, `strong_bear`, `tfo_bull`, `tfo_bear`} |
+| **Ranges** | `book2-ranges.md` | ~16KB | When `day_type.hypothesis` ∈ {`trading_range`, `barbwire`} |
+
+**When `ambiguous` or `insufficient_data`:** Load core.md ONLY. Agent should WAIT until structure clarifies before committing to a direction.
+
+### Routing Table
+
+| Engine Output | Knowledge Modules | Agent Action |
+|---|---|---|
+| `strong_bull` / `strong_bear` | core + trends | With-trend entries only. High conviction setups. |
+| `tfo_bull` / `tfo_bear` | core + trends | Trend from Open — aggressive with-trend, swing portion. |
+| `trading_range` | core + ranges | Fade extremes. WAIT for edge of range. No with-trend bias. |
+| `barbwire` | core + ranges | FORGET most setups. Only fade strong extremes at range edges. |
+| `ambiguous` | core only | WAIT. No clear direction. Let the market tip its hand. |
+| `insufficient_data` | core only | WAIT. Not enough bars for classification. |
+
+### Never Load Both trends.md AND book2-ranges.md
+Unless the engine output explicitly shows a transition (e.g., `trading_range` with `strong_bull` as alternative), load only ONE specialist module. The core.md provides the universal foundation that applies in both states.
 
 ---
 
@@ -164,8 +177,9 @@ Classify Trend Phase: early/mid/late/climax/TR (read `references/entry_type_matr
 ### Stage 2: Deep Dive
 
 Analyze entry timeframe. Read:
-- Always: `book1-trends.md` via `skill_view('price-action-al-brooks', 'book1-trends.md')`
-- If Trading Range or Barbwire: also `book2-ranges.md`
+- Always: `core.md` via `skill_view('price-action-al-brooks', 'core.md')`
+- If trending (strong_bull/bear, tfo_bull/bear): `trends.md` via `skill_view('price-action-al-brooks', 'trends.md')`
+- If Trading Range or Barbwire: `book2-ranges.md` via `skill_view('price-action-al-brooks', 'book2-ranges.md')`
 - `tier2-routing.md` for agent decision rules
 - `references/entry_type_matrix.md` for trend phase → entry type mapping
 
@@ -304,6 +318,8 @@ This skill is not a suggestion pile. Every step — execution mode, analysis for
 
 ## Knowledge Base
 **Source:** Al Brooks, Trading Price Action series
-- Book 1: Trends (26 chapters) — `book1-trends.md`
-- Book 2: Trading Ranges (32 chapters) — `book2-ranges.md`
+- Core: Universal price action (bar anatomy, counting, breakouts, close, EMA, risk) — `core.md`
+- Book 1: Trends (26 chapters) — `trends.md` (load when trending)
+- Book 2: Trading Ranges (32 chapters) — `book2-ranges.md` (load when ranging)
+- Legacy: Full Book 1 distillation — `book1-trends.md` (reference only, not loaded by workflow)
 
