@@ -1,6 +1,6 @@
 # Book 2: Trading Price Action Trading Ranges — Compact Reference
 
-> Al Brooks, "Trading Price Action Trading Ranges" (2012, Wiley). Brooks terminology only.
+> Al Brooks, "Trading Price Action Trading Ranges" (2012, Wiley). Brooks terminology only. Range-specific knowledge — for universal concepts (bar anatomy, bar counting basics, breakout framework, 20-EMA, close importance, two legs, risk management, glossary), see [[core]]. For trend-specific knowledge, see [[trends]].
 
 ## Quick Reference
 
@@ -14,30 +14,66 @@
 
 ---
 
-## 1. Breakout Framework
+## 1. Breakout Signs of Strength & Failure
 
-### Entry Methods (worst → best)
-1. Breakout entry (1 tick beyond swing H/L) — worst R:R
-2. Market entry on close of breakout bar — risky
-3. **Pullback entry (H1/H2 or L1/L2) — BEST**
-4. If ≥3 strong trend bars: buy small pullback immediately
+Every breakout — whether successful or failed — is eventually followed by a trading range. A breakout is a search for uncertainty and a 50% directional probability. See [[core]] for the basic breakout framework and entry methods.
 
-### Stop & Target
-- **Stop:** 1 tick below lowest bar in bull spike (above highest in bear spike)
-- **Target:** measured move = height of breakout spike (≥60% prob, 80% on strong BO)
+### Signs a Breakout Will Succeed (Ch 2)
 
-### Breakout Signals
+The more of these a breakout has, the more likely it will run to a measured move:
 
-| Will Succeed | Will Fail |
-|-------------|-----------|
-| Large body, small/no tails, vol 10-20× | Small body, large tail |
-| Breaks multiple resistance levels | Next bar: reversal/inside bar |
-| Urgency, 2-3 follow-through bars | Pullbacks >⅔ of bar height while forming |
-| Spike grows 5-10 bars, micro gaps | Pullback falls below BO point |
-| Growing buying/selling pressure in range | BO buyer can't profit before pullback |
-| First pullback after ≥3 BO bars, brief | Spike breaks resistance by 1 tick then reverses |
+- Large trend body, small/no tails. Larger bar = more likely to succeed.
+- Volume 10-20× average of recent bars → higher follow-through probability.
+- Spike goes very far, lasts several bars, breaks several resistance levels (MA, prior swing H/L, trend lines) by many ticks.
+- As the bar forms, it spends most of its time near its extreme; pullbacks <¼ of bar height.
+- Sense of urgency — you feel you have to enter but want a pullback that never comes.
+- Next 2-3 bars also have trend bodies ≥ average size of recent bodies. Follow-through bar large even if later bars have tails.
+- Spike grows 5-10 bars without pulling back more than a bar or so.
+- Move above/below a prior significant swing H/L goes far enough for scalpers to profit on a stop entry at that level.
+- One or more bars in spike has low at/below prior close (bull) or high at/above prior close (bear).
+- One or more bars has open above prior close (bull) or below (bear).
+- One or more bars has close on/near its extreme.
+- Micro gaps: low after strong bull bar ≥ high of bar before it (becomes measuring gap).
+- Context supports BO (trend resumption after pullback, higher/lower low test after trend line break).
+- Several strong trend days recently.
+- Growing buying/selling pressure in the range — large trend bars in BO direction clearly more prominent.
+- First pullback occurs only after 3+ bars of breaking out.
+- First pullback lasts only 1-2 bars, follows a bar that is not a strong reversal bar.
+- First pullback does not reach BO point and does not hit breakeven stop.
+- BO reverses many recent closes and highs/lows (5-20+ bars). Reversals by close are stronger than by high/low.
 
-**Real BOs feel unclear and scary.** Easy setups → small fast scalps.
+### Signs a Breakout Will Fail (Ch 2)
+
+The more of these, the more likely it leads to TR or reversal:
+
+- Small/average trend body with large tail on the extreme side.
+- Next bar has opposite body and is a reversal bar or inside bar; body ≈ average size of prior bodies.
+- Context makes BO unlikely (rally to test TR high with bear bars, overlapping bars, prominent tails, pullbacks along the way).
+- Market has been in TR for several days.
+- Bar after BO bar is a strong reversal bar or opposite inside bar.
+- Bar after trend bar has low below high of bar before trend bar (bull) — no micro gap.
+- First pullback occurs two bars after reversal.
+- Pullback extends for several bars.
+- Trend resumption after pullback stalls, forms lower high/higher low with signal bar.
+- Spike breaks a resistance/support level by only a tick then reverses.
+- Spike barely breaks one level but pulls back before breaking other levels just above/below.
+- Trader who entered on stop at prior swing H/L cannot make scalper's profit before pullback.
+- As BO bar forms, pullback >⅔ of bar height, or pulls back ≥⅓ two or more times.
+- Pullback falls below BO point. No micro gaps.
+- Pullback hits breakeven stop.
+- Sense of confusion — uncertain whether BO will succeed or fail.
+
+### Strong BO Behavior (Ch 3)
+
+When a breakout is very strong (3+ trend bars, small tails, very little overlap):
+
+- Traders don't wait for pullbacks — afraid of missing the move.
+- Buy at market and on 1-2 tick pullbacks. This relentless buying prevents significant pullbacks.
+- **Entering on strong BO:** Pinch your nose, buy the small pullback, rely on your stop. If BO is good, stop won't be hit.
+- **After strong BO spike:** Market usually forms channel → spike & channel trend. Channel often becomes first leg of TR.
+- **BO from channel phase:** After 10+ bars in channel, many experienced traders switch from stop entries to limit entries at/below prior bar low (bull) or above prior bar high (bear).
+- **Late in channel (20+ bars):** Stop buying, start selling at highs. Once bear BO occurs, reverse process.
+- **Volume:** Not reliable enough to trade on alone — the trend bars themselves tell you what you need to know.
 
 ---
 
@@ -92,6 +128,18 @@ Every BO pulls back → that pullback = initial failed BO. Two paths:
 | TR Middle | Strong move → TR → midpoint projects BO | Start to midline, projected equidistantly |
 | Measuring Gap | Middle of gap ≈ middle of trend leg | Middle_of_gap + (Middle_of_gap − Start_of_leg) |
 
+### Reversals End at Signal Bars from Prior Failed Reversals (Ch 9)
+
+The entry price of an early reversal that failed is often a magnet for a later, successful reversal.
+
+**Rules:**
+- In a bear trend with several failed bull reversal attempts, each entry price and signal bar high becomes a target once reversal up succeeds.
+- Market will often rally to the **highest signal bar's high** before having a significant pullback.
+- **Mathematical basis:** When price was last at those levels, directional probability favored the opposite side. When it returns, probability often shifts back — creating a natural reversal zone.
+- Traders who scaled into losing positions at those levels use their initial entry as a profit target — exiting breakeven on worst entry, profiting on all lower entries.
+- Rally often forms a **double top** with one of those earlier entry bars, then turns down at least briefly.
+- **None of the targets must be reached**, but each is a strong magnet that frequently draws the market back.
+
 ### Complete Magnet List
 Trend lines, channel lines, measured moves, spike & channel start, prior day H/L/O/C, swing highs/lows, BO points, gaps (any kind), trend extremes, TR extremes + middle, final flags, barbwire, entry/signal bar stops, huge trend bar opposite extreme, daily/weekly/monthly S/R, round numbers.
 
@@ -139,7 +187,29 @@ Each first occurrence = with-trend entry until major TL break.
 
 ---
 
-## 9. Bar Counting in Ranges
+## 9. Dueling Lines: Wedge Pullback to Trend Line (Ch 19)
+
+When a pullback is contained by a trend channel line and ends at a higher timeframe support/resistance line, this is a **dueling lines pattern** — a reliable trade in the direction of the larger trend.
+
+**Structure:**
+- Short-term trend (the pullback) ending at long-term trend's support (bull) or resistance (bear).
+- **All pullbacks end in dueling lines patterns** — the support/resistance line is not always obvious.
+- Most reliable form: pullback in a channel with **wedge shape or three pushes**, signal bar pokes through trend line and reverses.
+
+**Examples:**
+- Bull trend: wedge bull flag pullback ending at bull trend line. The trend channel line below the wedge is falling and intersects the rising bull trend line exactly as the pullback sets up a buy signal.
+- Bear channel: leg up within channel with three pushes, testing bear trend line and trend channel line simultaneously. Two types of resistance at same time → higher probability trade.
+- Horizontal support: prior swing low + wedge pullback = double bottom buy signal.
+
+**Rules:**
+- When traders see a pullback approaching a trend line, trend channel line, MA, prior swing H/L, or any key price level → alert for setup ending the pullback.
+- Pullbacks end for a mathematical reason. Different firms use different support/resistance methods, but when many occur in close proximity, enough volume reverses the market.
+- Look at the overall shape, choose any trend channel line that contains the price action, then watch how the market reacts after penetrating the line.
+- If move up to the dueling lines area was strong, wait for **second entry** (e.g., higher low after initial reversal) — more reliable.
+
+---
+
+## 10. Bar Counting in Ranges
 
 | Pattern | Trade When | Do NOT Trade When |
 |---------|-----------|-------------------|
@@ -154,7 +224,7 @@ Each first occurrence = with-trend entry until major TL break.
 
 ---
 
-## 10. Wedge Pullback vs Reversal
+## 11. Wedge Pullback vs Reversal
 
 | Type | Entry | Stop | Target |
 |------|-------|------|--------|
@@ -165,7 +235,7 @@ Each first occurrence = with-trend entry until major TL break.
 
 ---
 
-## 11. H&S (Brooks Context)
+## 12. H&S (Brooks Context)
 
 | Pattern | Interpretation | Trade |
 |---------|---------------|-------|
@@ -176,7 +246,7 @@ Each first occurrence = with-trend entry until major TL break.
 
 ---
 
-## 12. Trading Range Core
+## 13. Trading Range Core
 
 ### Identification
 Sideways between S/R, multiple reversals. 4-5 reversals in first hour → range day. Rallies to top appear like BO → **80% fail**.
@@ -197,7 +267,7 @@ Sideways between S/R, multiple reversals. 4-5 reversals in first hour → range 
 
 ---
 
-## 13. Tight TR / Barbwire
+## 14. Tight TR / Barbwire
 
 ### Cardinal Rule
 > **A tight TR trumps everything.** BO probability never >~55%.
@@ -215,7 +285,7 @@ Sideways between S/R, multiple reversals. 4-5 reversals in first hour → range 
 
 ---
 
-## 14. Triangles
+## 15. Triangles
 
 TR with 3+ pushes. All types (ascending, descending, symmetrical, expanding) trade the same.
 
@@ -225,7 +295,7 @@ TR with 3+ pushes. All types (ascending, descending, symmetrical, expanding) tra
 
 ---
 
-## 15. Key Inflection Times
+## 16. Key Inflection Times
 
 | Time (PST) | Event | Trade |
 |-------------|-------|-------|
@@ -235,7 +305,7 @@ TR with 3+ pushes. All types (ascending, descending, symmetrical, expanding) tra
 
 ---
 
-## 16. Counting Legs
+## 17. Counting Legs
 
 - Trends & countertrends tend to have **two legs**. Spike & channel = inherently two-legged.
 - After strong 1st leg → pullback → **2nd leg** (with-trend entry).
@@ -245,7 +315,7 @@ TR with 3+ pushes. All types (ascending, descending, symmetrical, expanding) tra
 
 ---
 
-## 17. Need Two Reasons
+## 18. Need Two Reasons
 
 Always have ≥2 reasons before entering.
 
@@ -255,7 +325,7 @@ Always have ≥2 reasons before entering.
 
 ---
 
-## 18. Trader's Equation
+## 19. Trader's Equation
 
 > `prob × reward > (1 − prob) × risk`
 
@@ -270,7 +340,7 @@ Confident → 60%. Uncertain → 50% — don't take unless reward >> risk. **Nev
 
 ---
 
-## 19. Scalp vs Swing
+## 20. Scalp vs Swing
 
 | Type | Hold | Profit | Prob | When |
 |------|------|--------|------|------|
@@ -281,22 +351,161 @@ Obvious → scalp. Unclear/scary → swing. Best: scalp part + swing balance wit
 
 ---
 
-## 20. Entry Methods & Stops
+## 21. Entering on Stops (Ch 27)
 
-**Stop vs Limit:**
+**Entering on a stop is the single most reliable entry approach.** The market is moving in your direction as you enter, increasing chances of a profitable trade. Beginners should restrict themselves to stop entries until consistently profitable.
+
+### How It Works
+- Place buy stop 1 tick above signal bar high (or sell stop 1 tick below signal bar low).
+- Entry bar = bar where order fills. After it closes: if strong body → tighten stop to 1 tick beyond entry bar. If doji → keep stop above signal bar.
+- **Scalping math:** In Eminis, usually need a 6-tick move beyond signal bar to net a 4-tick scalp (1 tick for entry beyond + 4 ticks profit + 1 tick for limit fill beyond).
+
+### When to Use Stops vs Limits
 | Situation | Entry |
 |-----------|-------|
 | Strong spike | Stop (direction) or Market |
-| Channel (weak trend) | Limit (fade extremes) or Stop (pullbacks) |
+| Channel (early, 1-10 bars) | Stop on H1/H2/L1/L2 pullbacks |
+| Channel (maturing, 10+ bars) | Limit (fade extremes) or Stop (pullbacks) |
+| Channel (late, 20+ bars) | Limit opposite (take profits, fade) |
 | TR day | Limit (buy low, sell high) |
 | Pullback in trend | Stop (confirmation) |
 | Beginners | Stop only |
 
-**Stops:** Standard = 1 tick beyond signal bar. After strong entry bar → tighten to 1 tick beyond entry bar. Doji entry bar → keep original. Trailing in trends: below/above prior swing. Halfway to target → breakeven. **TR: do NOT trail** — take partials.
+---
+
+## 22. Entering on Limits (Ch 28)
+
+Limit entries = betting that a move will fail and reverse. More setups than stop entries (~2:1), but riskier and harder to take emotionally. **Until consistently profitable, use stops only.**
+
+### Key Limit Entry Scenarios (Brooks list)
+
+**In strong spikes:**
+- Buy at close of prior strong bull trend bar in a strong bull spike.
+- Buy at/below low of prior bar in strong bull spike.
+- Sell at close of prior strong bear trend bar in strong bear spike.
+- Sell at/above high of prior bar in strong bear spike.
+
+**At BO points:**
+- Buy just above high of bar before bull BO bar (anticipating measuring gap).
+- Sell just below low of bar before bear BO bar.
+
+**In channels:**
+- Buy below low of prior bar in bull channel (early stages).
+- Sell above high of prior bar in bear channel (early stages).
+- In late-stage bull channel: sell above high of prior bar and above recent swing high (buying pressure waning).
+- In late-stage bear channel: buy below low of prior bar and below recent swing low.
+
+**At climaxes:**
+- Buy at close of large bear trend bar at likely sell climax, also below its low and at close of next bar.
+- Sell at close of large bull trend bar at likely buy climax, also above its high and at close of next bar.
+
+**In TRs:**
+- Buy at/below prior swing low at bottom of range.
+- Sell at/above prior swing high at top of range.
+- Buy a bear spike at the market or on limit at bottom of TR.
+- Sell a bull spike at the market or on limit at top of TR.
+
+**In pullbacks:**
+- Buy on pullback to steeply rising MA, scale in at intervals below.
+- Sell on pullback to steeply falling MA, scale in at intervals above.
+- Buy a 60-70% pullback from current high, risking to lower low (reward ≈ 2× risk, prob ≈ 60%).
+- Sell a 60-70% pullback from current low, risking to higher high.
+
+**Fading failed patterns:**
+- In strong bull trend, fade short scalps — buy on limit at 2-3 ticks above where short scalpers take profit.
+- In strong bear trend, fade long scalps — sell on limit at 2-3 ticks below where long scalpers take profit.
+- Buy below low 1/2 weak signal bar at bottom of TR or new bull trend after strong reversal.
+- Sell above high 1/2 weak signal bar at top of TR or new bear trend after strong reversal.
+
+### General Rules
+- A strong spike alone is NOT enough reason to enter on limit — consider context (could be exhaustive climax).
+- Don't use Fibonacci/Bollinger bands blindly for limit entries — wait for price action confirmation.
+- If you missed a stop entry by seconds, a limit at original price or 1 tick worse can work — but only for very strong trades.
+- **In strong bull trend:** low 1 and low 2 signals don't exist — they are only traps. Buy below them instead.
+- **In strong bear trend:** high 1 and high 2 signals don't exist — sell above them.
 
 ---
 
-## 21. Getting Trapped
+## 23. Protective and Trailing Stops (Ch 29)
+
+### Initial Stop Placement
+- **Standard:** 1 tick beyond signal bar extreme.
+- **After strong entry bar:** Tighten to 1 tick beyond entry bar.
+- **Doji entry bar:** Keep original stop (doji = one-bar TR, don't exit below a TR in a bull trend).
+- **Large signal bar:** Use money management stop (e.g., 8 ticks on Emini 5-min) or ~70% of signal bar height.
+- **Very large bars:** Reduce position size; risk about the height of the bar.
+
+### Trailing Stops in Trends
+- Trail below most recent swing low (bull) / above most recent swing high (bear).
+- Move to breakeven after market moves ~halfway to profit target.
+- When trend transitions to TR → stop trailing, take partials at range extremes instead.
+- **Don't tighten to below a doji entry bar** — 50/50 it gets hit.
+
+### Wide Stops
+- Some traders use wide stops (e.g., 5 points in Emini) and enter when they think trend is resuming, accepting that they sometimes enter early.
+- Wide stop + with-trend = probability ≥60%, reward ≈ risk → positive trader's equation.
+- As market moves in your direction, tighten stop to reduce risk.
+
+### Rules
+- **Always have a protective stop working in the market**, not just in your head.
+- If your premise is no longer valid, exit — even with a loss.
+- **Trapped out after stop hit?** Re-enter on next signal. Don't chase.
+- **Trapped in?** Exit immediately.
+- The stop size is often set by the first trade of the day — note how many ticks the market went against that first winner.
+
+---
+
+## 24. Profit Taking and Targets (Ch 30)
+
+### Core Principle
+All pullbacks and reversals begin with profit taking. Experienced traders exit on strength, reenter on pullback.
+
+### Rules
+- **Scalpers:** OCO orders — protective stop + profit target limit. Check account after every entry/exit.
+- **Swinging in strong trend:** Take ~half off at 2× initial risk. Trail stop on remainder. Take another quarter at 3× risk. Let last quarter run until clear reversal or close.
+- **Swinging in TR:** Take profits at opposite side of range. Don't rely on trailing stops — pullbacks will swing below prior lows.
+- **Trader's equation changes every tick.** If still favorable but weaker → tighten stop or take smaller profit. If marginal → exit ASAP. If negative → exit at market immediately.
+- **Profit target = flip side of protective stop.** Forces you to take profits while trader's equation is still positive.
+- **Reward often equals risk:** Market frequently rewards traders with as many ticks of profit as it forces them to risk. Place limit order 1-2 ticks short of the risk amount.
+- **Ideal:** 60%+ probability, reward ≈ 2× risk. Most common: reward ≈ risk in pullbacks in trends.
+- **Don't change plans mid-trade.** Swing traders who scalp out after losses miss big wins. Scalpers who swing after watching a trend get stopped out on next trade.
+
+---
+
+## 25. Scaling Into and Out of Trades (Ch 31)
+
+### Scaling Out
+Most traders do this routinely — exit part for scalp, rest for swing. This IS scaling out.
+
+### Scaling In — When It Works
+- **Into with-trend pullbacks:** Small position on first entry, add if market continues against you and premise is still valid.
+- **Into strong spikes:** Add on each bar as spike grows — each earlier entry is profitable.
+- **At TR extremes:** Fade with small position, add at better price if range holds.
+- **At fixed intervals:** Based on size of prior pullbacks and recent average daily range.
+
+### Scaling In — Rules
+- **Never add to a losing countertrend position.** Only scale into with-trend trades or TR extremes.
+- If market makes second move against you (e.g., low 2 in bear trend when you're long) → exit or reverse.
+- Risky in final hour — time is against you.
+- Risky against any strong trend — if trend is strong, only scale in with-trend.
+- **Must have a plan before entering:** Know final stop, average entry price, total risk.
+- Keep initial positions small enough so risk on final position stays within normal tolerance.
+- If big picture changes and premise is no longer valid → exit immediately, even at a loss.
+
+### Scaling Out — Methods
+- Half at 2× risk, quarter at 3× risk, let rest run.
+- Fixed intervals (e.g., every 20 cents).
+- Exit balance at first sign of larger pullback.
+- **Scalp portion + swing portion with BE stop** = most common scaling out approach.
+
+### Scaling Math
+- Each additional entry is a separate trade with its own trader's equation.
+- Average entry price and total risk must stay within comfort zone.
+- Probability changes with risk/reward/average entry — never known with certainty; if uncertain, assume 50%.
+
+---
+
+## 26. Getting Trapped
 
 | Trap | Trade |
 |------|-------|
@@ -312,7 +521,7 @@ Tight trap stops (2-4 ticks) work — reversal is sharp. Trapped out → re-ente
 
 ---
 
-## 22. Decision Flowchart
+## 27. Decision Flowchart
 
 | Scenario | Action |
 |----------|--------|
@@ -336,10 +545,12 @@ Tight trap stops (2-4 ticks) work — reversal is sharp. Trapped out → re-ente
 | First MA touch after 20+ gap bars | LONG/SHORT with PA entry |
 | First MA gap bar | LONG/SHORT (swing) |
 | 11:00-11:30 PST stop run fails | Enter with trend |
+| Dueling lines (wedge pullback at TL) | With-trend entry at intersection |
+| Price returns to prior failed reversal signal bar | Expect magnet test — take profits or fade |
 
 ---
 
-## 23. Glossary
+## 28. Glossary
 
 | Term | Definition |
 |------|------------|
@@ -348,8 +559,10 @@ Tight trap stops (2-4 ticks) work — reversal is sharp. Trapped out → re-ente
 | Breakout test | Price approaches BO point from opposite side |
 | DB bull flag | 2-legged pullback in bull trend, both legs ~same price |
 | DT bear flag | 2-legged rally in bear trend, both legs ~same price |
+| Dueling lines | Pullback ending at intersection of two S/R lines (e.g., wedge at trend line) |
 | Fade | Enter opposite direction |
 | Failed failure | Failed BO that fails again → strong 2nd signal |
+| Failed reversal signal bar | Entry price of early failed reversal — becomes magnet for later successful reversal |
 | Final flag | Last pullback before trend reversal |
 | Gap | Area between bars with no overlap; all trend bars = gaps |
 | MA gap bar | Bar entirely on opposite side of MA |
