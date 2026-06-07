@@ -471,6 +471,7 @@ def rule_range_fade(analysis: dict, bar_cls: dict, last_bar: dict,
         has_bull_signal = (
             _bar_is_reversal(bar_cls, 'LONG') or
             (bull and pb_count in ('L2', 'L3')) or
+            (bear and pb_count in ('H2', 'H3')) or  # H2/H3 at bottom = buy
             _bar_is_trend_bar(bar_cls, 'LONG')
         )
         if has_bull_signal:
@@ -489,6 +490,7 @@ def rule_range_fade(analysis: dict, bar_cls: dict, last_bar: dict,
         has_bear_signal = (
             _bar_is_reversal(bar_cls, 'SHORT') or
             (bear and pb_count in ('H2', 'H3')) or
+            (bull and pb_count in ('L2', 'L3')) or  # L2/L3 at top = sell
             _bar_is_trend_bar(bar_cls, 'SHORT')
         )
         if has_bear_signal:
