@@ -305,18 +305,20 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
 
         # Strong trend or TR at range bottom
         if day_type in ('strong_bull', 'tfo_bull'):
-            pass  # valid
+            # Valid - standard M2B setup
+            if subtotal < 1:
+                return None
         elif day_type == 'trading_range':
             _, _, price_pos = _compute_range_metrics(analysis, price)
             if price_pos is None or price_pos > 0.40:
                 return None  # only fade LONG at range bottom
+            if subtotal < 1:
+                return None
         elif day_type == 'ambiguous':
-            return None  # no clear structure
+            # Allow in ambiguous if trend is clear and conviction is higher
+            if subtotal < 2:
+                return None
         else:
-            return None
-
-        # Conviction filter
-        if subtotal < 1:
             return None
 
         stop, target = _get_stop_target(last_bar, 'LONG', atr, pb_details)
@@ -340,17 +342,20 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
             return None
 
         if day_type in ('strong_bear', 'tfo_bear'):
-            pass  # valid
+            # Valid - standard M2S setup
+            if subtotal < 1:
+                return None
         elif day_type == 'trading_range':
             _, _, price_pos = _compute_range_metrics(analysis, price)
             if price_pos is None or price_pos < 0.60:
                 return None  # only fade SHORT at range top
+            if subtotal < 1:
+                return None
         elif day_type == 'ambiguous':
-            return None
+            # Allow in ambiguous if trend is clear and conviction is higher
+            if subtotal < 2:
+                return None
         else:
-            return None
-
-        if subtotal < 1:
             return None
 
         stop, target = _get_stop_target(last_bar, 'SHORT', atr, pb_details)
@@ -384,8 +389,14 @@ def rule_trend_breakout(analysis: dict, bar_cls: dict, last_bar: dict,
     bull = 'bull' in trend_dir
     price = analysis.get('context', {}).get('price', 0)
 
-    if day_type not in ('strong_bull', 'strong_bear', 'tfo_bull', 'tfo_bear'):
+    # Allow in strong/tfo trends, or ambiguous with clear trend
+    if day_type in ('strong_bull', 'strong_bear', 'tfo_bull', 'tfo_bear'):
+        conv_threshold = 1
+    elif day_type == 'ambiguous' and trend_dir in ('bull_trend', 'bear_trend'):
+        conv_threshold = 2  # Higher conviction for ambiguous
+    else:
         return None
+
     if health_stage in ('late_stage', 'transition_complete', 'insufficient_data'):
         return None
 
@@ -402,7 +413,7 @@ def rule_trend_breakout(analysis: dict, bar_cls: dict, last_bar: dict,
     if bull and pb_count == 'L1' and ema_prox in ('at_ema', 'near_ema'):
         if not (patterns.get('spike_bull') or _bar_is_trend_bar(bar_cls, 'LONG')):
             return None
-        if conv < 1:
+        if conv < conv_threshold:
             return None
         stop, target = _get_stop_target(last_bar, 'LONG', atr)
         if not _min_rr_check(stop, target, price, 'LONG'):
@@ -413,7 +424,7 @@ def rule_trend_breakout(analysis: dict, bar_cls: dict, last_bar: dict,
     if not bull and pb_count == 'H1' and ema_prox in ('at_ema', 'near_ema'):
         if not (patterns.get('spike_bear') or _bar_is_trend_bar(bar_cls, 'SHORT')):
             return None
-        if conv < 1:
+        if conv < conv_threshold:
             return None
         stop, target = _get_stop_target(last_bar, 'SHORT', atr)
         if not _min_rr_check(stop, target, price, 'SHORT'):
@@ -455,7 +466,7 @@ def rule_range_fade(analysis: dict, bar_cls: dict, last_bar: dict,
         return None
 
     # ── LONG: Near bottom of range + bullish reversal bar ─────────────
-    if price_pos < 0.30 and not bear:
+    if price_pos < 0.30:
         # Check for bullish signal: reversal bar, or L2 at bottom, or trend bar
         has_bull_signal = (
             _bar_is_reversal(bar_cls, 'LONG') or
@@ -474,7 +485,7 @@ def rule_range_fade(analysis: dict, bar_cls: dict, last_bar: dict,
                                 'RF_LONG', conv, stop, target)
 
     # ── SHORT: Near top of range + bearish reversal bar ──────────────
-    if price_pos > 0.70 and not bull:
+    if price_pos > 0.70:
         has_bear_signal = (
             _bar_is_reversal(bar_cls, 'SHORT') or
             (bear and pb_count in ('H2', 'H3')) or
@@ -557,8 +568,14 @@ def rule_breakout_entry(analysis: dict, bar_cls: dict, last_bar: dict,
     price = analysis.get('context', {}).get('price', 0)
     conv = analysis.get('conviction_objective', {}).get('subtotal', 0)
 
-    if day_type not in ('strong_bull', 'strong_bear', 'tfo_bull', 'tfo_bear'):
+    # Allow in strong/tfo trends, or ambiguous with clear trend
+    if day_type in ('strong_bull', 'strong_bear', 'tfo_bull', 'tfo_bear'):
+        conv_threshold = 1
+    elif day_type == 'ambiguous' and trend_dir in ('bull_trend', 'bear_trend'):
+        conv_threshold = 2  # Higher conviction for ambiguous
+    else:
         return None
+
     if health_stage in ('late_stage', 'transition_complete', 'insufficient_data'):
         return None
 
@@ -583,7 +600,7 @@ def rule_breakout_entry(analysis: dict, bar_cls: dict, last_bar: dict,
     if atr and bar_range < (atr * 1.5):
         return None
 
-    if conv < 1:
+    if conv < conv_threshold:
         return None
 
     # LONG: Buy on spike bull bar
