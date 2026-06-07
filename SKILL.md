@@ -190,6 +190,12 @@ For scanning multiple tickers in parallel, use sub-agents as Stage 1 and Stage 2
 
 ## Workflow
 
+### Stage 0: Weekly Always-In Filter (Pre-Scan)
+
+**Before ANY analysis, check weekly always-in direction.** Read `$OBSIDIAN_VAULT_PATH/2 - Areas/Trading/Weekly Trend Filter.md` for the full workflow.
+
+Quick rule: if weekly always-in disagrees with your daily/H4 bias, SKIP unless one of the 6 allowed exceptions applies. This filter is non-negotiable — it would have blocked 3 of 4 recent losing trades.
+
 ### Stage 1: Multi-Timeframe Scan
 
 Pull data (via Mode 1 or Mode 2). For each TF determine:
@@ -197,7 +203,7 @@ Pull data (via Mode 1 or Mode 2). For each TF determine:
 | TF | Purpose | Look for |
 |----|---------|----------|
 | **Weekly** | Dominant TF — is there a macro trend? | Alternating bull/bear bars? TR? |
-| **Daily** | Intermediate structure | Swing highs/lows, higher lows, lower highs |
+| **Daily** | Intermediate structure | Swing highs/lows, higher lows, higher highs |
 | **H4** | Entry TF | Range extremes, tightness, signal bars, wedge top/bottom |
 
 Classify Trend Phase: early/mid/late/climax/TR (read `references/entry_type_matrix.md`). Entry recommendation MUST match the trend phase — do NOT default to pullback.
