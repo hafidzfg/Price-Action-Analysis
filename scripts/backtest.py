@@ -542,6 +542,213 @@ def rule_wedge_reversal(analysis: dict, bar_cls: dict, last_bar: dict,
 # 5. MAIN BACKTEST LOOP
 # ══════════════════════════════════════════════════════════════════════════════
 
+def rule_breakout_entry(analysis: dict, bar_cls: dict, last_bar: dict,
+                        atr: float) -> Position | None:
+    """
+    Breakout Entry: Aggressive entry ON the spike bar (not waiting for pullback).
+    Best R:R but higher risk. Use smaller position size.
+    """
+    day_type = analysis.get('day_type', {}).get('hypothesis', '')
+    trend_health = analysis.get('trend_health', {})
+    health_stage = trend_health.get('stage', '')
+    trend_dir = analysis.get('context', {}).get('trend', '')
+    bull = 'bull' in trend_dir
+    bear = 'bear' in trend_dir
+    price = analysis.get('context', {}).get('price', 0)
+    conv = analysis.get('conviction_objective', {}).get('subtotal', 0)
+
+    if day_type not in ('strong_bull', 'strong_bear', 'tfo_bull', 'tfo_bear'):
+        return None
+    if health_stage in ('late_stage', 'transition_complete', 'insufficient_data'):
+        return None
+
+    patterns = analysis.get('analysis', {}).get('daily', {}).get('patterns', {})
+    if patterns is None:
+        patterns = {}
+
+    # Check for spike pattern
+    spike_detected = (patterns.get('spike_bull') or patterns.get('spike_bear'))
+    if not spike_detected:
+        return None
+
+    # Check spike bar characteristics
+    bar_body = bar_cls.get('body_pct', 0)
+    bar_range_pct = bar_cls.get('range_pct', 0)
+
+    if bar_body < 60:  # Strong trend bar
+        return None
+
+    # Check if range is > 1.5× ATR (large move)
+    bar_range = last_bar.get('high', 0) - last_bar.get('low', 0)
+    if atr and bar_range < (atr * 1.5):
+        return None
+
+    if conv < 1:
+        return None
+
+    # LONG: Buy on spike bull bar
+    if bull and patterns.get('spike_bull'):
+        stop = last_bar.get('low', 0) - (atr * 0.3)  # Tight stop
+        target = price + (atr * 2.0)  # Aggressive target
+        if not _min_rr_check(stop, target, price, 'LONG'):
+            return None
+        return Position(0, last_bar.get('date', ''), price, 'LONG',
+                        'BO_LONG', conv, stop, target)
+
+    # SHORT: Sell on spike bear bar
+    if bear and patterns.get('spike_bear'):
+        stop = last_bar.get('high', 0) + (atr * 0.3)  # Tight stop
+        target = price - (atr * 2.0)  # Aggressive target
+        if not _min_rr_check(stop, target, price, 'SHORT'):
+            return None
+        return Position(0, last_bar.get('date', ''), price, 'SHORT',
+                        'BO_SHORT', conv, stop, target)
+
+    return None
+
+
+def rule_climax_reversal(analysis: dict, bar_cls: dict, last_bar: dict,
+                         atr: float, bar_idx: int,
+                         prev_signal_bars: dict) -> Position | None:
+    """
+    Climax Reversal: Fade exhaustion after 2+ consecutive strong trend bars.
+    Different from wedge reversal — this is about exhaustion, not pattern.
+    """
+    trend_health = analysis.get('trend_health', {})
+    health_stage = trend_health.get('stage', '')
+    if health_stage not in ('early_weakening', 'late_stage', 'transition_complete'):
+        return None
+
+    trend_dir = analysis.get('context', {}).get('trend', '')
+    bull = 'bull' in trend_dir
+    bear = 'bear' in trend_dir
+    price = analysis.get('context', {}).get('price', 0)
+    conv = analysis.get('conviction_objective', {}).get('subtotal', 0)
+
+    # Check for exhaustion signs in recent bars
+    daily_analysis = analysis.get('analysis', {}).get('daily', {})
+    last_10 = daily_analysis.get('last_10_bars_classified', [])
+    if not last_10:
+        return None
+
+    # Count consecutive strong trend bars
+    consecutive_bull = 0
+    consecutive_bear = 0
+    for bar in reversed(last_10):
+        bar_type = bar.get('bar_type', '')
+        body_pct = bar.get('body_pct', 0)
+        if 'trend_bull' in bar_type and body_pct >= 60:
+            consecutive_bull += 1
+        elif 'trend_bear' in bar_type and body_pct >= 60:
+            consecutive_bear += 1
+        else:
+            break
+
+    # Check for climax bars (body ≥80%)
+    has_climax = any(
+        'trend' in bar.get('bar_type', '') and bar.get('body_pct', 0) >= 80
+        for bar in last_10[-3:]
+    )
+
+    # Check for expansion (range >1.8× average)
+    has_expansion = False
+    if last_10:
+        ranges = [b.get('high', 0) - b.get('low', 0) for b in last_10[-5:]]
+        avg_range = sum(ranges) / len(ranges) if ranges else 0
+        last_range = last_10[-1].get('high', 0) - last_10[-1].get('low', 0)
+        if avg_range and last_range > (avg_range * 1.8):
+            has_expansion = True
+
+    # Need at least 2 consecutive strong bars OR climax OR expansion
+    if consecutive_bull < 2 and consecutive_bear < 2 and not has_climax and not has_expansion:
+        return None
+
+    # Check for reversal bar
+    if not (_bar_is_reversal(bar_cls, 'LONG') or _bar_is_reversal(bar_cls, 'SHORT')):
+        return None
+
+    if conv < 1:
+        return None
+
+    # LONG: After bear climax
+    if consecutive_bear >= 2 and _bar_is_reversal(bar_cls, 'LONG'):
+        stop = last_bar.get('low', 0) - (atr * 0.3)
+        target = price + (atr * 1.5)  # Quick scalp
+        if not _min_rr_check(stop, target, price, 'LONG'):
+            return None
+        last_sig = prev_signal_bars.get('CLIMAX_L', -999)
+        if bar_idx - last_sig >= 5:
+            return Position(0, last_bar.get('date', ''), price, 'LONG',
+                            'CLIMAX_L', conv, stop, target)
+
+    # SHORT: After bull climax
+    if consecutive_bull >= 2 and _bar_is_reversal(bar_cls, 'SHORT'):
+        stop = last_bar.get('high', 0) + (atr * 0.3)
+        target = price - (atr * 1.5)  # Quick scalp
+        if not _min_rr_check(stop, target, price, 'SHORT'):
+            return None
+        last_sig = prev_signal_bars.get('CLIMAX_S', -999)
+        if bar_idx - last_sig >= 5:
+            return Position(0, last_bar.get('date', ''), price, 'SHORT',
+                            'CLIMAX_S', conv, stop, target)
+
+    return None
+
+
+def rule_20_gap_bar(analysis: dict, bar_cls: dict, last_bar: dict,
+                    atr: float) -> Position | None:
+    """
+    20 Gap Bar Touch: First MA touch after 20+ bars away from MA.
+    High-probability exhaustion entry.
+    """
+    day_type = analysis.get('day_type', {}).get('hypothesis', '')
+    if day_type not in ('strong_bull', 'strong_bear', 'tfo_bull', 'tfo_bear'):
+        return None
+
+    trend_dir = analysis.get('context', {}).get('trend', '')
+    bull = 'bull' in trend_dir
+    bear = 'bear' in trend_dir
+    price = analysis.get('context', {}).get('price', 0)
+    conv = analysis.get('conviction_objective', {}).get('subtotal', 0)
+
+    # Check if we have gap_bar_count in pullbacks
+    pb = analysis.get('pullbacks', {})
+    sb = pb.get('structure_based', {})
+    cl = sb.get('current_leg', {})
+    gap_bar_count = cl.get('gap_bar_count', 0)
+
+    if gap_bar_count < 20:
+        return None
+
+    # Check if price just touched MA (proximity)
+    ema_prox = cl.get('ema_proximity', 'unknown')
+    if ema_prox not in ('at_ema', 'near_ema'):
+        return None
+
+    if conv < 1:
+        return None
+
+    # LONG: Bull trend, price touches MA from above
+    if bull:
+        stop = last_bar.get('low', 0) - (atr * 0.3)
+        target = price + (atr * 2.0)
+        if not _min_rr_check(stop, target, price, 'LONG'):
+            return None
+        return Position(0, last_bar.get('date', ''), price, 'LONG',
+                        'GAP20_L', conv, stop, target)
+
+    # SHORT: Bear trend, price touches MA from below
+    if bear:
+        stop = last_bar.get('high', 0) + (atr * 0.3)
+        target = price - (atr * 2.0)
+        if not _min_rr_check(stop, target, price, 'SHORT'):
+            return None
+        return Position(0, last_bar.get('date', ''), price, 'SHORT',
+                        'GAP20_S', conv, stop, target)
+
+    return None
+
+
 def run_backtest(ticker: str, daily_bars: list, classified: list,
                  start_bar: int = MIN_BARS) -> dict:
     """Run the sliding-window backtest over all bars."""
@@ -644,19 +851,35 @@ def run_backtest(ticker: str, daily_bars: list, classified: list,
         # Priority 1: M2B/M2S (highest probability)
         new_pos = rule_m2b_m2s(analysis, bar_cls, last_bar, atr, prev_pb_count)
 
-        # Priority 2: Trend breakout (first pullback after spike)
+        # Priority 2: Breakout pullback (first pullback after spike)
         if new_pos is None:
             new_pos = rule_trend_breakout(analysis, bar_cls, last_bar, atr)
 
-        # Priority 3: Range fade (trading range edge)
+        # Priority 3: Breakout entry (aggressive, on spike bar)
+        if new_pos is None:
+            new_pos = rule_breakout_entry(analysis, bar_cls, last_bar, atr)
+
+        # Priority 4: Range edge reversal (trading range)
         if new_pos is None:
             new_pos = rule_range_fade(analysis, bar_cls, last_bar, atr,
                                       prev_signal_bars, i)
 
-        # Priority 4: Wedge reversal (countertrend, late stage)
+        # Priority 5: Failed breakout (trading range)
+        # (rule_range_fade already handles FBO via reversal bar check)
+
+        # Priority 6: Wedge reversal (countertrend, late stage)
         if new_pos is None:
             new_pos = rule_wedge_reversal(analysis, bar_cls, last_bar, atr,
                                           i, prev_signal_bars)
+
+        # Priority 7: Climax reversal (exhaustion fade)
+        if new_pos is None:
+            new_pos = rule_climax_reversal(analysis, bar_cls, last_bar, atr,
+                                           i, prev_signal_bars)
+
+        # Priority 8: 20 gap bar touch (first MA touch after extended gap)
+        if new_pos is None:
+            new_pos = rule_20_gap_bar(analysis, bar_cls, last_bar, atr)
 
         if new_pos is not None:
             new_pos.entry_bar = i
@@ -865,19 +1088,25 @@ def main():
         print("""
 SETUP TYPES (in priority order):
 
-  M2B    — Standard Buy: L2 at EMA in bull trend (strong/tfo/TR-bottom)
-  M2S    — Standard Sell: H2 at EMA in bear trend (strong/tfo/TR-top)
-  TBO    — Trend Breakout Long: spike + L1 in strong bull trend
-  TBS    — Trend Breakout Short: spike + H1 in strong bear trend
-  RF_LONG   — Range Fade Long: reversal bar at TR bottom
-  RF_SHORT  — Range Fade Short: reversal bar at TR top
-  WEDGE_L   — Wedge Reversal Long: wedge bottom in late-stage bear trend
-  WEDGE_S   — Wedge Reversal Short: wedge top in late-stage bull trend
+  M2B      — Standard Buy: L2 at EMA in bull trend (strong/tfo/TR-bottom)
+  M2S      — Standard Sell: H2 at EMA in bear trend (strong/tfo/TR-top)
+  TBO      — Trend Breakout Long: spike + L1 in strong bull trend
+  TBS      — Trend Breakout Short: spike + H1 in strong bear trend
+  BO_LONG  — Breakout Entry Long: aggressive entry ON spike bar
+  BO_SHORT — Breakout Entry Short: aggressive entry ON spike bar
+  RF_LONG  — Range Fade Long: reversal bar at TR bottom
+  RF_SHORT — Range Fade Short: reversal bar at TR top
+  WEDGE_L  — Wedge Reversal Long: wedge bottom in late-stage bear trend
+  WEDGE_S  — Wedge Reversal Short: wedge top in late-stage bull trend
+  CLIMAX_L — Climax Reversal Long: fade bear exhaustion
+  CLIMAX_S — Climax Reversal Short: fade bull exhaustion
+  GAP20_L  — 20 Gap Bar Long: first MA touch after 20+ bar gap
+  GAP20_S  — 20 Gap Bar Short: first MA touch after 20+ bar gap
 
 EXIT RULES (checked each bar in order):
   1. Stop loss (0.3x ATR beyond the signal bar extreme)
-  2. Target hit (2.0x ATR from entry)
-  3. Time stop (25 bars max)
+  2. Target hit (1.5-2.0x ATR from entry depending on setup)
+  3. Time stop (10-25 bars max depending on setup)
   4. Trend flip (always-in direction reversed + late/complete health)
   5. End of data
 """)
