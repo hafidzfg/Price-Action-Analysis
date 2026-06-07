@@ -271,7 +271,8 @@ def _min_rr_check(stop: float, target: float, entry: float, direction: str) -> b
 
 def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
                  atr: float, prev_pb_count: str | None,
-                 prev_ema_prox: str | None = None) -> Position | None:
+                 prev_ema_prox: str | None = None,
+                 bars: list = None) -> Position | None:
     """
     M2B/M2S: Standard H2/L2 at EMA in a clear trend.
     Works in strong_bull/bear and tfo_bull/bear day types.
@@ -354,8 +355,8 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         
         # Additional confirmation: price should be above the previous bar's high
         # (confirms the pullback is complete and price is resuming)
-        prev_bar = bars[-2] if len(bars) > 1 else None
-        if prev_bar:
+        if bars and len(bars) > 1:
+            prev_bar = bars[-2]
             prev_high = prev_bar.get('high', 0)
             if price <= prev_high:
                 return None  # Price not above previous high, pullback not complete
@@ -425,8 +426,8 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         
         # Additional confirmation: price should be below the previous bar's low
         # (confirms the pullback is complete and price is resuming)
-        prev_bar = bars[-2] if len(bars) > 1 else None
-        if prev_bar:
+        if bars and len(bars) > 1:
+            prev_bar = bars[-2]
             prev_low = prev_bar.get('low', 0)
             if price >= prev_low:
                 return None  # Price not below previous low, pullback not complete
@@ -946,7 +947,7 @@ def run_backtest(ticker: str, daily_bars: list, classified: list,
         new_pos = None
 
         # Priority 1: M2B/M2S (highest probability)
-        new_pos = rule_m2b_m2s(analysis, bar_cls, last_bar, atr, prev_pb_count, prev_ema_prox)
+        new_pos = rule_m2b_m2s(analysis, bar_cls, last_bar, atr, prev_pb_count, prev_ema_prox, bars)
 
         # Priority 2: Breakout pullback (first pullback after spike)
         if new_pos is None:
