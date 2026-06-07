@@ -269,7 +269,8 @@ def _min_rr_check(stop: float, target: float, entry: float, direction: str) -> b
 # ── Entry rule implementations ────────────────────────────────────────────
 
 def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
-                 atr: float, prev_pb_count: str | None) -> Position | None:
+                 atr: float, prev_pb_count: str | None,
+                 prev_ema_prox: str | None = None) -> Position | None:
     """
     M2B/M2S: Standard H2/L2 at EMA in a clear trend.
     Works in strong_bull/bear and tfo_bull/bear day types.
@@ -307,9 +308,8 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
     if bull and pb_count in ('L2', 'L3') and ema_prox in ('at_ema', 'near_ema'):
         # Only trigger when pullback JUST reached EMA (not already at EMA)
         if prev_pb_count in ('L2', 'L3') and prev_pb_count is not None:
-            # Allow re-entry if EMA proximity changed
-            prev_ema = analysis.get('pullbacks', {}).get('structure_based', {}).get('current_leg', {}).get('ema_proximity', 'unknown')
-            if prev_ema in ('at_ema', 'near_ema'):
+            # Block re-entry only if previous was also at EMA
+            if prev_ema_prox in ('at_ema', 'near_ema'):
                 return None  # Already at EMA, skip
 
         # Strong trend or TR at range bottom
@@ -349,9 +349,8 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
     if bear and pb_count in ('H2', 'H3') and ema_prox in ('at_ema', 'near_ema'):
         # Only trigger when pullback JUST reached EMA (not already at EMA)
         if prev_pb_count in ('H2', 'H3') and prev_pb_count is not None:
-            # Allow re-entry if EMA proximity changed
-            prev_ema = analysis.get('pullbacks', {}).get('structure_based', {}).get('current_leg', {}).get('ema_proximity', 'unknown')
-            if prev_ema in ('at_ema', 'near_ema'):
+            # Block re-entry only if previous was also at EMA
+            if prev_ema_prox in ('at_ema', 'near_ema'):
                 return None  # Already at EMA, skip
 
         if day_type in ('strong_bear', 'tfo_bear'):
