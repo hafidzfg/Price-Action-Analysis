@@ -369,6 +369,10 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         signal_bar_high = last_bar.get('high', 0)
         entry_price = signal_bar_high + (last_bar.get('close', 0) * 0.001)  # 0.1% above high
         
+        # Confirm price actually broke above signal bar high
+        if price < signal_bar_high:
+            return None  # Price hasn't broken above signal bar high yet
+        
         return Position(
             entry_bar=len(last_bar['date']) if 0 else 0,  # placeholder
             entry_date=last_bar.get('date', ''),
@@ -439,6 +443,10 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         # Entry should be 1 tick below signal bar low
         signal_bar_low = last_bar.get('low', 0)
         entry_price = signal_bar_low - (last_bar.get('close', 0) * 0.001)  # 0.1% below low
+        
+        # Confirm price actually broke below signal bar low
+        if price > signal_bar_low:
+            return None  # Price hasn't broken below signal bar low yet
         
         return Position(
             entry_bar=0,
