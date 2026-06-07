@@ -298,9 +298,9 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         return None
 
     # ── M2B (Long) ────────────────────────────────────────────────────
-    if bull and pb_count == 'L2' and ema_prox in ('at_ema', 'near_ema'):
-        # Only trigger when L2 JUST formed (not already held L2)
-        if prev_pb_count == 'L2' and prev_pb_count is not None:
+    if bull and pb_count in ('L2', 'L3') and ema_prox in ('at_ema', 'near_ema'):
+        # Only trigger when L2/L3 JUST formed (not already held)
+        if prev_pb_count in ('L2', 'L3') and prev_pb_count is not None:
             return None
 
         # Strong trend or TR at range bottom
@@ -337,8 +337,8 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         )
 
     # ── M2S (Short) ───────────────────────────────────────────────────
-    if bear and pb_count == 'H2' and ema_prox in ('at_ema', 'near_ema'):
-        if prev_pb_count == 'H2' and prev_pb_count is not None:
+    if bear and pb_count in ('H2', 'H3') and ema_prox in ('at_ema', 'near_ema'):
+        if prev_pb_count in ('H2', 'H3') and prev_pb_count is not None:
             return None
 
         if day_type in ('strong_bear', 'tfo_bear'):
