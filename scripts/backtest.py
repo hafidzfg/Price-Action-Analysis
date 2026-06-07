@@ -693,8 +693,8 @@ def rule_trend_pullback(analysis: dict, bar_cls: dict, last_bar: dict,
         if price <= prev_close:
             return None
     
-    # Don't enter if price is too far above EMA (> 5% above)
-    if ema20 and (price - ema20) / ema20 > 0.05:
+    # Don't enter if price is too far above EMA (> 8% above)
+    if ema20 and (price - ema20) / ema20 > 0.08:
         return None
     
     # Minimum conviction
