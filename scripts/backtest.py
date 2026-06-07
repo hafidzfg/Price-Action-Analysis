@@ -351,6 +351,14 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         
         if not is_bullish_bar:
             return None  # Not a bullish confirmation bar
+        
+        # Additional confirmation: price should be above the previous bar's high
+        # (confirms the pullback is complete and price is resuming)
+        prev_bar = bars[-2] if len(bars) > 1 else None
+        if prev_bar:
+            prev_high = prev_bar.get('high', 0)
+            if price <= prev_high:
+                return None  # Price not above previous high, pullback not complete
 
         stop, target = _get_stop_target(last_bar, 'LONG', atr, pb_details)
         if not _min_rr_check(stop, target, price, 'LONG'):
@@ -414,6 +422,14 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         
         if not is_bearish_bar:
             return None  # Not a bearish confirmation bar
+        
+        # Additional confirmation: price should be below the previous bar's low
+        # (confirms the pullback is complete and price is resuming)
+        prev_bar = bars[-2] if len(bars) > 1 else None
+        if prev_bar:
+            prev_low = prev_bar.get('low', 0)
+            if price >= prev_low:
+                return None  # Price not below previous low, pullback not complete
 
         stop, target = _get_stop_target(last_bar, 'SHORT', atr, pb_details)
         if not _min_rr_check(stop, target, price, 'SHORT'):
