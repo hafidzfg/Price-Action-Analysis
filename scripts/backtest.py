@@ -356,10 +356,14 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         if not _min_rr_check(stop, target, price, 'LONG'):
             return None
 
+        # Entry should be 1 tick above signal bar high
+        signal_bar_high = last_bar.get('high', 0)
+        entry_price = signal_bar_high + (last_bar.get('close', 0) * 0.001)  # 0.1% above high
+        
         return Position(
             entry_bar=len(last_bar['date']) if 0 else 0,  # placeholder
             entry_date=last_bar.get('date', ''),
-            entry_price=price,
+            entry_price=entry_price,
             direction='LONG',
             setup_type='M2B',
             conviction=subtotal,
@@ -415,10 +419,14 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         if not _min_rr_check(stop, target, price, 'SHORT'):
             return None
 
+        # Entry should be 1 tick below signal bar low
+        signal_bar_low = last_bar.get('low', 0)
+        entry_price = signal_bar_low - (last_bar.get('close', 0) * 0.001)  # 0.1% below low
+        
         return Position(
             entry_bar=0,
             entry_date=last_bar.get('date', ''),
-            entry_price=price,
+            entry_price=entry_price,
             direction='SHORT',
             setup_type='M2S',
             conviction=subtotal,
