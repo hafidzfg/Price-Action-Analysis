@@ -315,8 +315,8 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
             if subtotal < 1:
                 return None
         elif day_type == 'ambiguous':
-            # Allow in ambiguous if trend is clear and conviction is higher
-            if subtotal < 2:
+            # Allow in ambiguous if trend is clear
+            if subtotal < 1:
                 return None
         else:
             return None
@@ -352,8 +352,8 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
             if subtotal < 1:
                 return None
         elif day_type == 'ambiguous':
-            # Allow in ambiguous if trend is clear and conviction is higher
-            if subtotal < 2:
+            # Allow in ambiguous if trend is clear
+            if subtotal < 1:
                 return None
         else:
             return None
@@ -393,7 +393,7 @@ def rule_trend_breakout(analysis: dict, bar_cls: dict, last_bar: dict,
     if day_type in ('strong_bull', 'strong_bear', 'tfo_bull', 'tfo_bear'):
         conv_threshold = 1
     elif day_type == 'ambiguous' and trend_dir in ('bull_trend', 'bear_trend'):
-        conv_threshold = 2  # Higher conviction for ambiguous
+        conv_threshold = 1  # Same threshold for ambiguous
     else:
         return None
 
@@ -574,7 +574,7 @@ def rule_breakout_entry(analysis: dict, bar_cls: dict, last_bar: dict,
     if day_type in ('strong_bull', 'strong_bear', 'tfo_bull', 'tfo_bear'):
         conv_threshold = 1
     elif day_type == 'ambiguous' and trend_dir in ('bull_trend', 'bear_trend'):
-        conv_threshold = 2  # Higher conviction for ambiguous
+        conv_threshold = 1  # Same threshold for ambiguous
     else:
         return None
 
