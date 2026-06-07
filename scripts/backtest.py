@@ -305,9 +305,12 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
 
     # ── M2B (Long) ────────────────────────────────────────────────────
     if bull and pb_count in ('L2', 'L3') and ema_prox in ('at_ema', 'near_ema'):
-        # Only trigger when L2/L3 JUST formed (not already held)
+        # Only trigger when pullback JUST reached EMA (not already at EMA)
         if prev_pb_count in ('L2', 'L3') and prev_pb_count is not None:
-            return None
+            # Allow re-entry if EMA proximity changed
+            prev_ema = analysis.get('pullbacks', {}).get('structure_based', {}).get('current_leg', {}).get('ema_proximity', 'unknown')
+            if prev_ema in ('at_ema', 'near_ema'):
+                return None  # Already at EMA, skip
 
         # Strong trend or TR at range bottom
         if day_type in ('strong_bull', 'tfo_bull'):
@@ -344,8 +347,12 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
 
     # ── M2S (Short) ───────────────────────────────────────────────────
     if bear and pb_count in ('H2', 'H3') and ema_prox in ('at_ema', 'near_ema'):
+        # Only trigger when pullback JUST reached EMA (not already at EMA)
         if prev_pb_count in ('H2', 'H3') and prev_pb_count is not None:
-            return None
+            # Allow re-entry if EMA proximity changed
+            prev_ema = analysis.get('pullbacks', {}).get('structure_based', {}).get('current_leg', {}).get('ema_proximity', 'unknown')
+            if prev_ema in ('at_ema', 'near_ema'):
+                return None  # Already at EMA, skip
 
         if day_type in ('strong_bear', 'tfo_bear'):
             # Valid - standard M2S setup
