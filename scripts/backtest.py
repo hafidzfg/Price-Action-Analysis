@@ -342,6 +342,13 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         else:
             return None
 
+        # Confirm pullback is complete: price should be going up
+        prev_bar = last_bar
+        if prev_bar:
+            prev_close = prev_bar.get('close', 0)
+            if price <= prev_close:
+                return None  # Pullback not complete yet
+
         stop, target = _get_stop_target(last_bar, 'LONG', atr, pb_details)
         if not _min_rr_check(stop, target, price, 'LONG'):
             return None
@@ -391,6 +398,13 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
                 return None
         else:
             return None
+
+        # Confirm pullback is complete: price should be going down
+        prev_bar = last_bar
+        if prev_bar:
+            prev_close = prev_bar.get('close', 0)
+            if price >= prev_close:
+                return None  # Pullback not complete yet
 
         stop, target = _get_stop_target(last_bar, 'SHORT', atr, pb_details)
         if not _min_rr_check(stop, target, price, 'SHORT'):
