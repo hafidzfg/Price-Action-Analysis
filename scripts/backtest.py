@@ -855,6 +855,7 @@ def run_backtest(ticker: str, daily_bars: list, classified: list,
     prev_pb_count: str | None = None
     prev_ema_prox: str | None = None
     prev_signal_bars: dict = {}
+    bars = daily_bars  # Reference to daily_bars for passing to rules
 
     print(f"[backtest] Running {n - start_bar} windows from bar {start_bar} to {n-1}...",
           file=sys.stderr)
