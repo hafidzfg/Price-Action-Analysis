@@ -275,6 +275,7 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
     M2B/M2S: Standard H2/L2 at EMA in a clear trend.
     Works in strong_bull/bear and tfo_bull/bear day types.
     Also works in trading_range when H2/L2 aligns with range edge.
+    Also works in ambiguous when trend is clear (price above/below EMA).
     """
     day_type = analysis.get('day_type', {}).get('hypothesis', '')
     trend_health = analysis.get('trend_health', {})
@@ -283,6 +284,7 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
     bull = 'bull' in trend_dir
     bear = 'bear' in trend_dir
     price = analysis.get('context', {}).get('price', 0)
+    ema20 = analysis.get('context', {}).get('ema20', 0)
 
     pb = analysis.get('pullbacks', {})
     sb = pb.get('structure_based', {})
@@ -305,8 +307,18 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         conv_threshold = 1
 
     # ── M2B (Long) ────────────────────────────────────────────────────
-    if bull and pb_count in ('L2', 'L3') and ema_prox in ('at_ema', 'near_ema'):
-        # Only trigger when pullback JUST reached EMA (not already at EMA)
+    # Check if we have a bullish pullback (L2/L3) and price is above EMA
+    if bull and pb_count in ('L2', 'L3'):
+        # Allow entry if price is above EMA (trend is clear)
+        price_above_ema = price > ema20 if ema20 else False
+        
+        # Check EMA proximity — allow "far" if price is above EMA
+        ema_ok = ema_prox in ('at_ema', 'near_ema') or price_above_ema
+        
+        if not ema_ok:
+            return None
+
+        # Only trigger when pullback JUST formed (not already held)
         if prev_pb_count in ('L2', 'L3') and prev_pb_count is not None:
             # Block re-entry only if previous was also at EMA
             if prev_ema_prox in ('at_ema', 'near_ema'):
@@ -346,8 +358,18 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         )
 
     # ── M2S (Short) ───────────────────────────────────────────────────
-    if bear and pb_count in ('H2', 'H3') and ema_prox in ('at_ema', 'near_ema'):
-        # Only trigger when pullback JUST reached EMA (not already at EMA)
+    # Check if we have a bearish pullback (H2/H3) and price is below EMA
+    if bear and pb_count in ('H2', 'H3'):
+        # Allow entry if price is below EMA (trend is clear)
+        price_below_ema = price < ema20 if ema20 else False
+        
+        # Check EMA proximity — allow "far" if price is below EMA
+        ema_ok = ema_prox in ('at_ema', 'near_ema') or price_below_ema
+        
+        if not ema_ok:
+            return None
+
+        # Only trigger when pullback JUST formed (not already held)
         if prev_pb_count in ('H2', 'H3') and prev_pb_count is not None:
             # Block re-entry only if previous was also at EMA
             if prev_ema_prox in ('at_ema', 'near_ema'):
