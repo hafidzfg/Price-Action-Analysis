@@ -293,9 +293,15 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
     conv = analysis.get('conviction_objective', {})
     subtotal = conv.get('subtotal', 0)
 
-    # Skip if trend health is late/complete
-    if health_stage in ('late_stage', 'transition_complete', 'insufficient_data'):
+    # Skip if trend health is transition_complete (too late)
+    if health_stage == 'transition_complete':
         return None
+
+    # Late stage: allow but with lower conviction requirement
+    if health_stage == 'late_stage':
+        conv_threshold = 1  # Same threshold, but mark as scalp
+    else:
+        conv_threshold = 1
 
     # ── M2B (Long) ────────────────────────────────────────────────────
     if bull and pb_count in ('L2', 'L3') and ema_prox in ('at_ema', 'near_ema'):
