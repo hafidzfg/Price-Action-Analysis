@@ -244,10 +244,11 @@ def _get_stop_target(last_bar: dict, direction: str, atr: float,
 
     if direction == 'LONG':
         # Stop below the pullback's lowest bar, or below last bar low
-        stop = last_low - (atr * 0.3)
+        # Use 1× ATR for wider stop (gives room for volatility)
+        stop = last_low - (atr * 1.0)
         target = last_close + (atr * 2.0)
     else:
-        stop = last_high + (atr * 0.3)
+        stop = last_high + (atr * 1.0)
         target = last_close - (atr * 2.0)
 
     return round(stop, 4), round(target, 4)
