@@ -342,12 +342,14 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         else:
             return None
 
-        # Confirm pullback is complete: price should be going up
-        prev_bar = last_bar
-        if prev_bar:
-            prev_close = prev_bar.get('close', 0)
-            if price <= prev_close:
-                return None  # Pullback not complete yet
+        # Confirm pullback is complete: current bar should be bullish
+        # (trend_bull or reversal_bull with decent body)
+        bar_type = bar_cls.get('bar_type', '')
+        body_pct = bar_cls.get('body_pct', 0)
+        is_bullish_bar = ('trend_bull' in bar_type or 'reversal_bull' in bar_type) and body_pct >= 40
+        
+        if not is_bullish_bar:
+            return None  # Not a bullish confirmation bar
 
         stop, target = _get_stop_target(last_bar, 'LONG', atr, pb_details)
         if not _min_rr_check(stop, target, price, 'LONG'):
@@ -399,12 +401,14 @@ def rule_m2b_m2s(analysis: dict, bar_cls: dict, last_bar: dict,
         else:
             return None
 
-        # Confirm pullback is complete: price should be going down
-        prev_bar = last_bar
-        if prev_bar:
-            prev_close = prev_bar.get('close', 0)
-            if price >= prev_close:
-                return None  # Pullback not complete yet
+        # Confirm pullback is complete: current bar should be bearish
+        # (trend_bear or reversal_bear with decent body)
+        bar_type = bar_cls.get('bar_type', '')
+        body_pct = bar_cls.get('body_pct', 0)
+        is_bearish_bar = ('trend_bear' in bar_type or 'reversal_bear' in bar_type) and body_pct >= 40
+        
+        if not is_bearish_bar:
+            return None  # Not a bearish confirmation bar
 
         stop, target = _get_stop_target(last_bar, 'SHORT', atr, pb_details)
         if not _min_rr_check(stop, target, price, 'SHORT'):
