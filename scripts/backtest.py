@@ -787,6 +787,7 @@ def run_backtest(ticker: str, daily_bars: list, classified: list,
     position: Position | None = None
     trades: list[Trade] = []
     prev_pb_count: str | None = None
+    prev_ema_prox: str | None = None
     prev_signal_bars: dict = {}
 
     print(f"[backtest] Running {n - start_bar} windows from bar {start_bar} to {n-1}...",
@@ -880,7 +881,7 @@ def run_backtest(ticker: str, daily_bars: list, classified: list,
         new_pos = None
 
         # Priority 1: M2B/M2S (highest probability)
-        new_pos = rule_m2b_m2s(analysis, bar_cls, last_bar, atr, prev_pb_count)
+        new_pos = rule_m2b_m2s(analysis, bar_cls, last_bar, atr, prev_pb_count, prev_ema_prox)
 
         # Priority 2: Breakout pullback (first pullback after spike)
         if new_pos is None:
@@ -918,13 +919,16 @@ def run_backtest(ticker: str, daily_bars: list, classified: list,
 
         position = new_pos
 
-        # Track pullback count
+        # Track pullback count and EMA proximity
         pb = analysis.get('pullbacks', {})
         sb = pb.get('structure_based', {})
         cl = sb.get('current_leg', {})
         current_pb = cl.get('pullback_count', 'unknown')
+        current_ema = cl.get('ema_proximity', 'unknown')
         if current_pb != 'unknown':
             prev_pb_count = current_pb
+        if current_ema != 'unknown':
+            prev_ema_prox = current_ema
 
     # Close open position at end of data
     if position is not None:
