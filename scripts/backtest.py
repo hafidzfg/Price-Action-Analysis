@@ -659,6 +659,64 @@ def rule_wedge_reversal(analysis: dict, bar_cls: dict, last_bar: dict,
 # 5. MAIN BACKTEST LOOP
 # ══════════════════════════════════════════════════════════════════════════════
 
+def rule_trend_pullback(analysis: dict, bar_cls: dict, last_bar: dict,
+                       atr: float, bars: list = None) -> Position | None:
+    """
+    Simple trend pullback: Buy bullish bar when price is above EMA in uptrend.
+    Doesn't rely on Tier-1 pullback detection. Simpler, more aggressive.
+    """
+    trend_dir = analysis.get('context', {}).get('trend', '')
+    price = analysis.get('context', {}).get('price', 0)
+    ema20 = analysis.get('context', {}).get('ema20', 0)
+    conv = analysis.get('conviction_objective', {}).get('subtotal', 0)
+    
+    # Only in clear uptrend
+    if trend_dir != 'bull_trend':
+        return None
+    
+    # Price must be above EMA
+    if not ema20 or price <= ema20:
+        return None
+    
+    # Current bar must be bullish (trend_bull or reversal_bull with decent body)
+    bar_type = bar_cls.get('bar_type', '')
+    body_pct = bar_cls.get('body_pct', 0)
+    is_bullish_bar = ('trend_bull' in bar_type or 'reversal_bull' in bar_type) and body_pct >= 50
+    
+    if not is_bullish_bar:
+        return None
+    
+    # Price should be above previous close (confirming uptrend resumption)
+    if bars and len(bars) > 1:
+        prev_bar = bars[-2]
+        prev_close = prev_bar.get('close', 0)
+        if price <= prev_close:
+            return None
+    
+    # Don't enter if price is too far above EMA (> 5% above)
+    if ema20 and (price - ema20) / ema20 > 0.05:
+        return None
+    
+    # Minimum conviction
+    if conv < 1:
+        return None
+    
+    stop, target = _get_stop_target(last_bar, 'LONG', atr)
+    if not _min_rr_check(stop, target, price, 'LONG'):
+        return None
+    
+    return Position(
+        entry_bar=0,
+        entry_date=last_bar.get('date', ''),
+        entry_price=price,
+        direction='LONG',
+        setup_type='TREND_L',
+        conviction=conv,
+        stop_loss=stop,
+        target=target,
+    )
+
+
 def rule_breakout_entry(analysis: dict, bar_cls: dict, last_bar: dict,
                         atr: float) -> Position | None:
     """
@@ -980,7 +1038,11 @@ def run_backtest(ticker: str, daily_bars: list, classified: list,
         if new_pos is None:
             new_pos = rule_trend_breakout(analysis, bar_cls, last_bar, atr)
 
-        # Priority 3: Breakout entry (aggressive, on spike bar)
+        # Priority 3: Simple trend pullback (price above EMA + bullish bar)
+        if new_pos is None:
+            new_pos = rule_trend_pullback(analysis, bar_cls, last_bar, atr, bars)
+
+        # Priority 4: Breakout entry (aggressive, on spike bar)
         if new_pos is None:
             new_pos = rule_breakout_entry(analysis, bar_cls, last_bar, atr)
 
