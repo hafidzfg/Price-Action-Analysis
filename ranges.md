@@ -140,7 +140,7 @@ The entry price of an early reversal that failed is often a magnet for a later, 
 - **None of the targets must be reached**, but each is a strong magnet that frequently draws the market back.
 
 ### Complete Magnet List
-Trend lines, channel lines, measured moves, spike & channel start, prior day H/L/O/C, swing highs/lows, BO points, gaps (any kind), trend extremes, TR extremes + middle, final flags, barbwire, entry/signal bar stops, huge trend bar opposite extreme, daily/weekly/monthly S/R, round numbers.
+Trend lines, channel lines, measured moves, spike & channel start, prior day H/L/O/C, swing highs/lows, BO points, gaps (any kind), trend extremes, TR extremes + middle, final flags, barbwire, entry/signal bar stops, huge trend bar opposite extreme, 1D/1W/monthly S/R, round numbers.
 
 **Rules:** Trade with-trend toward magnet until tested. Countertrend only with prior TL break + clear reversal. Expect 1-5 tick overshoot at strong magnets.
 

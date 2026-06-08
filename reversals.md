@@ -439,7 +439,7 @@ See [[core]] for the basic always-in concept. Extended day trading application:
 ### Multi-Timeframe Context
 
 - Patterns are the same on all timeframes. Only scale changes.
-- **Major MTR on daily chart** can lead to moves lasting weeks or months.
+- **Major MTR on 1D chart** can lead to moves lasting weeks or months.
 - **Always check higher timeframe** for context before entering a trade.
 - **Reversal on 5-minute may be pullback on 60-minute.** See [[core]] for time frame relationships.
 

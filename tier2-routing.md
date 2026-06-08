@@ -38,7 +38,7 @@ Stage 2 Agent produces:
 - SoS ≥ 12 → with-trend AI, do not consider countertrend
 - Barbwire day → no clear AI; fade extremes
 - Wedge top in bull trend → AI may be shifting (watch bar by bar)
-- Trend says bull but day type says ambiguous → trust structure, look at H4
+- Trend says bull but day type says ambiguous → trust structure, look at 4H
 - **Reversal signals present → load `reversals.md`, check if AI is flipping. If strong reversal (MTR with trend line break + test), AI may have flipped.**
 
 ---
@@ -110,8 +110,8 @@ Start with `conviction_objective.subtotal`, then adjust:
 | Second entry (same setup tried before) | +1 |
 | Signal bar context | ±0–1 |
 | Countertrend (if taking it despite warnings) | −2 |
-| H4 timeframe aligns with daily | +1 |
-| H4 timeframe contradicts | −1 |
+| 4H timeframe aligns with 1D | +1 |
+| 4H timeframe contradicts | −1 |
 | Consecutive signals of same type | −1 (if 3rd+ similar signal without recent win) |
 
 **Final score → verdict:**

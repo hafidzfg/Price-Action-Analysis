@@ -5,12 +5,6 @@ description: "Two-stage price action analysis per Al Brooks' Trading Price Actio
 
 # Price Action — Al Brooks Framework
 
-## Backtester
-
-The skill includes a deterministic backtester (`scripts/backtest.py`) that slides
-the Tier-1 engine across historical daily bars and applies rule-based entry/exit
-decisions. See `references/backtest_architecture.md` for architecture details.
-
 ## Modular File Structure
 
 ```
@@ -20,12 +14,10 @@ skills/price-action-al-brooks/
 ├── trends.md             ← Trend-specific rules (~14KB — load when trending)
 ├── ranges.md             ← Trading range rules (~20KB — load when ranging)
 ├── reversals.md          ← Reversal patterns (~24KB — load when reversal signals detected)
-├── DECISION_LAYER.md     ← Backtester decision layer (8 entry rules)
 ├── tier2-routing.md      ← Tier-2 agent decision guide (~50 lines, replaces full book reading)
 └── scripts/
     ├── fetch_data.py     ← Multi-timeframe OHLCV + indicators + pattern detection
-    ├── brooks_analysis.py ← Tier-1 deterministic engine (SoS, day type, pullbacks, etc.)
-    └── backtest.py       ← Deterministic backtester (8 entry rules, no LLM calls)
+    └── brooks_analysis.py ← Tier-1 deterministic engine (SoS, day type, pullbacks, etc.)
 ```
 
 ## Two-Tier Architecture
@@ -41,8 +33,8 @@ This skill uses a four-tier knowledge loading system driven by the Tier-1 engine
 
 ## Known Limitations
 
-- **No intraday / opening range data** — Brooks heavily emphasizes the first 30-min/hour high/low as key magnets. The framework uses daily/weekly/H4 only. The agent should note this gap in analyses.
-- **H4 timeframe fetched but not analyzed by engine** — H4 data exists in the output for agent reference but brooks_analysis.py only processes daily. The agent should cross-check H4 structure manually.
+- **No intraday / opening range data** — Brooks heavily emphasizes the first 30-min/hour high/low as key magnets. The framework uses 1D/1W/4H only. The agent should note this gap in analyses.
+- **4H timeframe fetched but not analyzed by engine** — 4H data exists in the output for agent reference but brooks_analysis.py only processes 1D. The agent should cross-check 4H structure manually.
 - **Swing detection is primitive** — the built-in swing finder misses double tops/bottoms and equal extremes. Measured moves and leg structure are approximate.
 - **Volume signs (SoS 20-22) are weakly computed** — volume data quality varies by instrument (crypto volume differs from stocks). Take these signs with caution.
 - **Climax is identified retroactively** — the engine flags potential climax bars (body ≥75%, range >1.8× avg) but true climax can only be confirmed after the fact. The agent must verify.
@@ -148,12 +140,6 @@ Fetches multi-timeframe OHLCV candle data + indicator snapshots via tvkit (Tradi
 ### brooks_analysis.py (Tier-1 Engine)
 ```bash
 python ~/.hermes/profiles/analyst/skills/trading/price-action-al-brooks/scripts/brooks_analysis.py AAPL_brooks.json
-```
-
-### backtest.py (Deterministic Backtester)
-```bash
-python3 backtest.py AAPL --bars 200 --show-trades
-python3 backtest.py --list-setups
 ```
 
 ## Data Sourcing — Hard Rules
