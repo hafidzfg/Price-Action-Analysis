@@ -93,7 +93,7 @@ Every LONG/SHORT verdict must include a conviction score. Use this rubric:
 | R:R ratio (agent-assessed) | At least 1:3 | +1 |
 | R:R ratio (agent-assessed) | Under 1:1 | -1 |
 | Bar counting | H2/L2 at 20-EMA (standard setup) | +1 |
-| Bar counting | H1/L1 (first pullback, less reliable) | 0 |
+| Bar counting | H1/L1 (first micro-bounce, less reliable) | 0 |
 | Bar counting | Breakout entry (early trend) | +1 |
 | Bar counting | Wedge/FBO entry (late/climax) | +1 |
 | Bar counting | Range edge reversal (TR) | +1 |
@@ -148,6 +148,16 @@ python ~/.hermes/profiles/analyst/skills/trading/price-action-al-brooks/scripts/
 ### Rule 2: If the primary source fails — STOP. Tell the user.
 ### Rule 3: Never use cached data without explicit user consent.
 ### Rule 4: When the user confirms an exchange or ticker, try again.
+
+## Naming Conventions
+
+| Term | Correct Usage | Common Mistake | Reason |
+|------|--------------|----------------|--------|
+| H1/H2/H3/H4, L1/L2/L3/L4 | Pullback leg counts (Brooks' bar counting) | H4 as a timeframe | H4 means "fourth pullback leg", NOT "4-hour". Brooks counts H1→H2→H3→H4 for consecutive pullbacks in a trend. |
+| 4H | 4-hour timeframe (intraday context) | H4 | Use `4H` for timeframes, `H4` for leg counts. Same rule: 1D (not daily), 1W (not weekly), 1M (not monthly). |
+| **Code keys** in `fetch_data.py` | `'h4'`, `'daily'`, `'weekly'` (lowercase) | `'H4'` in code | Code dict keys use lowercase to avoid collision with leg-count terminology. The broker API key is `'240'` for 4H. |
+| daily/weekly in docs | Use `1D` / `1W` | `daily` / `weekly` | Document consistently uses `1D` / `1W` for brevity and alignment with TradingView notation. |
+| Leg direction label | `H` for bull pullback, `L` for bear pullback | Calling L1 a "higher low" | `H` = pullback in a bull trend (goes to new high after). `L` = correction in a bear trend (goes to new low after). |
 
 ## Brooks Language Only
 Acceptable: wedge top/bottom, micro channel, trend bar, doji, inside bar, outside bar, barbwire, measured move, pullback, trading range, HH/HL/LH/LL, signal bar, breakout, failed breakout, reversal bar, trend resumption.

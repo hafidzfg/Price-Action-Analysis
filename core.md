@@ -80,21 +80,45 @@ Every outside bar is part of a TR by definition. Usually best NOT to enter on br
 
 ## 3. Bar Counting: H1/H2/H3/H4 / L1/L2/L3/L4
 
-Pullback counting within a single leg. Resets on new leg.
+Micro-bounce counting within a pullback. Resets when the trend resumes and a fresh pullback begins.
+
+**Definition:** A **High 1 (H1)** is the first bar within a pullback in a BULL trend whose high is higher than the high of the bar immediately before it. It is the first sign of a bounce attempt — the pullback may be losing steam.
+
+A **High 2 (H2)** is the second such bar within the same pullback — a second bounce, more reliable than the first. This is the standard M2B setup near the 20-EMA.
+
+A **Low 1 (L1)** is the first bar within a correction in a BEAR trend whose low is lower than the low of the bar immediately before it. It signals the correction is losing steam and bears are probing lower.
+
+A **Low 2 (L2)** is the second such bar — more reliable. Standard M2S setup near the 20-EMA.
 
 | Count | Meaning | Reliability | Action |
 |-------|---------|-------------|--------|
-| H1/L1 | First pullback | Lower | Early entry in spike phase only |
-| **H2/L2** | **Second pullback** | **Standard** | **Primary with-trend entry (M2B/M2S near 20-EMA)** |
-| H3/L3 | Third push | Wedge potential | Often exhaustion — potential fade |
-| H4/L4 | Fourth push | Context-dependent | Possible reversal |
+| H1/L1 | First micro-bounce bar within a pullback | Lower | Early entry in spike phase only |
+| **H2/L2** | **Second micro-bounce bar within a pullback** | **Standard** | **Primary with-trend entry (M2B/M2S near 20-EMA)** |
+| H3/L3 | Third micro-bounce in same pullback | Wedge potential | Often exhaustion — potential fade |
+| H4/L4 | Fourth micro-bounce | Context-dependent | Possible reversal |
 
-**H2/L2 = ABC correction.** First leg = A, the H1/L1 = B, final leg = C. Breakout from C is the H2/L2 entry bar.
+**Bar-by-bar example (bull trend pullback):**
+```
+Bar 1: Bull trend bar, H=100   ─── trending up
+Bar 2: Bull trend bar, H=104   ─── new high
+Bar 3: Bear bar, H=102         ─── pullback begins (lower high)
+Bar 4: Bear bar, H=101         ─── pullback continues (lower high)
+Bar 5: Bull/doji bar, H=103    ─── HIGH > prior bar (103 > 101) ← H1
+Bar 6: Bear bar, H=102         ─── pullback resumes (lower high)
+Bar 7: Bull bar, H=102.5       ─── HIGH > prior bar (102.5 > 102) ← H2
+```
+After H2, if the trend resumes → M2B entry above H2's high.
 
-**H3/L3 = wedge flag.** When a bear pullback ends after a third leg, it's a low 3 sell setup = wedge bear flag. Same for bull side.
+**H2/L2 and ABC corrections** (broader structure frame). Sometimes a single pullback subdivides:
+- A = first leg down
+- B = bounce up (H1 is the first micro-bounce within the B leg)
+- C = second leg down
+Breakout above C completes the correction. In this context "H2 entry" means entering after C breaks, not a separate pullback event.
+
+**H3/L3 – wedge flag.** Three micro-bounces within the same pullback → each weaker → potential wedge/top reversal.
 
 **Edge cases:**
-- Low 1 in strong bull trend → NOT VALID
+- Shorting the first pullback in a strong bull trend → NOT VALID (trap)
 - Failed H2 → look for H3 as wedge top
 - Context > count number always
 - H2 in trend = continuation. H2 in range = reversal. Context is everything.

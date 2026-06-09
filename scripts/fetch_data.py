@@ -6,7 +6,7 @@ Uses:
 - tvkit (TradingView WebSocket) for actual candle data across timeframes
 - TradingView Scanner API for indicator snapshots (RSI, MACD, etc.)
 
-Supports: IDX (.JK), US (NASDAQ/NYSE), Crypto, XAUUSD/Commodities
+Supports: IDX (.JK), US (NASDAQ/NYSE), Crypto, XAUUSD/Commodities, Japan (.T / TSE), Taiwan (.TW / TWSE, .TPEX / TPEX)
 
 Output: JSON to stdout + saved raw file.
 """
@@ -70,6 +70,8 @@ GLOBAL_EXCHANGES: dict[str, str] = {
     'SIX':    'europe',    # Swiss Exchange
     # Asia-Pacific
     'TSE':    'asia',      # Tokyo Stock Exchange
+    'TWSE':   'asia',      # Taiwan Stock Exchange
+    'TPEX':   'asia',      # Taipei Exchange (OTC, Taiwan)
     'HKEX':   'asia',      # Hong Kong Exchange
     'SGX':    'asia',      # Singapore Exchange
     'ASX':    'australia', # Australian Securities Exchange
@@ -81,7 +83,7 @@ GLOBAL_EXCHANGES: dict[str, str] = {
 
 # Priority order for auto-resolution when no exchange hint given
 # Starts with most common US exchanges, then major global exchanges
-EXCHANGE_PRIORITY = ['NASDAQ', 'NYSE', 'TSX', 'LSE', 'TSE', 'HKEX', 'ASX', 'SGX', 'EURONEXT', 'XETRA']
+EXCHANGE_PRIORITY = ['NASDAQ', 'NYSE', 'TSX', 'LSE', 'TSE', 'HKEX', 'TWSE', 'TPEX', 'ASX', 'SGX', 'EURONEXT', 'XETRA']
 
 
 def resolve_symbol(ticker: str, exchange: str | None = None) -> tuple[str, str, str]:
@@ -111,6 +113,21 @@ def resolve_symbol(ticker: str, exchange: str | None = None) -> tuple[str, str, 
     if t.endswith('.JK'):
         base = t.replace('.JK', '')
         return f'IDX:{base}', f'IDX:{base}', 'idx'
+
+    # --- Taiwan stocks (.TW suffix) ---
+    if t.endswith('.TW'):
+        base = t.replace('.TW', '')
+        return f'TWSE:{base}', f'TWSE:{base}', 'us'
+
+    # --- Taipei Exchange stocks (.TPEX suffix) ---
+    if t.endswith('.TPEX'):
+        base = t.replace('.TPEX', '')
+        return f'TPEX:{base}', f'TPEX:{base}', 'us'
+
+    # --- Japan stocks (.T suffix) ---
+    if t.endswith('.T'):
+        base = t.replace('.T', '')
+        return f'TSE:{base}', f'TSE:{base}', 'us'
 
     # --- Commodities (check BEFORE crypto — symbols like XAUUSD end with USD) ---
     if t in COMMODITY_MAP:
@@ -170,6 +187,15 @@ def _exchange_suggestion(exchange_symbol: str) -> str:
                f"Try TSXV:{symbol} or NYSE:{symbol} or NASDAQ:{symbol}.",
         'IDX': f"Symbol '{symbol}' doesn't exist on IDX. "
                f"Check spelling — IDX tickers use the full company code (e.g., BBRI, ASII).",
+        'TSE': f"Symbol '{symbol}' doesn't exist on TSE. "
+               f"Japanese tickers are numbers (e.g., 7203 for Toyota, 9984 for SoftBank). "
+               f"Try TWSE:{symbol} for Taiwan stocks or use the .T suffix (e.g., {symbol}.T).",
+        'TWSE': f"Symbol '{symbol}' doesn't exist on TWSE. "
+                f"Taiwan tickers are numbers (e.g., 2330 for TSMC, 2454 for MediaTek). "
+                f"Try TSE:{symbol} for Japanese stocks or use the .TW suffix (e.g., {symbol}.TW).",
+        'TPEX': f"Symbol '{symbol}' doesn't exist on TPEX (Taipei Exchange). "
+                f"TPEX stocks are numbers (e.g., 8299 for Phison). "
+                f"Try TWSE:{symbol} for main board stocks or use the .TPEX suffix (e.g., {symbol}.TPEX).",
     }
     base = suggestions.get(exchange, f"Symbol '{exchange_symbol}' not found. "
                            f"Available exchanges: {', '.join(sorted(GLOBAL_EXCHANGES.keys()))}.")
@@ -774,26 +800,23 @@ def compute_bar_analysis(bars: list[dict]) -> dict:
         above_ema = below_ema = 0
 
     # --- Latest H1/H2/L1/L2 counting ---
-    # Find the most recent leg direction and count pullbacks
+    # Count micro-bounce bars in the last 20 bars.
+    # Bull leg (up): L counting — bars with lower lows (micro-corrections).
+    # Bear leg (down): H counting — bars with higher highs (micro-bounces).
     h_count = 0
     l_count = 0
     leg_dir = None
-    for i in range(len(bars) - 1, max(len(bars) - 20, 0), -1):
-        ct = classified[i]
-        if leg_dir is None:
-            leg_dir = 'up' if bars[i]['close'] > bars[i]['open'] else 'down'
+    if bars:
+        leg_dir = 'up' if bars[-1]['close'] > bars[-1]['open'] else 'down'
+
+    start_idx = max(1, len(bars) - 20)
+    for i in range(start_idx, len(bars)):
         if leg_dir == 'up':
-            if ct['bar_type'] in ('trend_bear', 'weak_bear', 'doji'):
+            if bars[i]['low'] < bars[i - 1]['low']:
                 l_count += 1
-            else:
-                if l_count > 0:
-                    break  # end of pullback
-        else:
-            if ct['bar_type'] in ('trend_bull', 'weak_bull', 'doji'):
+        elif leg_dir == 'down':
+            if bars[i]['high'] > bars[i - 1]['high']:
                 h_count += 1
-            else:
-                if h_count > 0:
-                    break
 
     return {
         'last_20_bars': {

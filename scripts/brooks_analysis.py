@@ -571,8 +571,11 @@ def classify_day_type(bars: list, classified: list, trend_context: dict,
 def compute_pullbacks(bars: list, classified: list,
                       trend_context: dict) -> dict:
     """
-    Leg-based pullback counting using swing points.
-    Within each leg, count distinct countertrend bar runs as H1-H4/L1-L4.
+    Micro-bounce counting within pullbacks using bar-level H1/H2/L1/L2.
+
+    H1-H4: bars within a bear leg (pullback in bull trend) whose high > prior bar's high.
+    L1-L4: bars within a bull leg (correction in bear trend) whose low < prior bar's low.
+    Each qualifying bar is a separate count (not clusters of countertrend bars).
     """
     if not bars or len(bars) < 10:
         return {
@@ -646,66 +649,41 @@ def compute_pullbacks(bars: list, classified: list,
         start = leg['start_bar']
         end = leg['end_bar']
         leg_bars = bars[start:end + 1]
-        leg_cls = classified[start:end + 1]
 
         if len(leg_bars) < 2:
             continue
 
-        # Within this leg, count countertrend bar runs
-        pullback_runs = []
-        in_pb = False
-        pb_start = None
+        # Count micro-bounce bars within this leg.
+        # Bear leg (pullback in bull trend): H counting — bars with higher highs.
+        # Bull leg (correction in bear trend): L counting — bars with lower lows.
+        bounce_details = []
+        bounce_count = 0
 
-        for j, c in enumerate(leg_cls):
-            is_countertrend = False
-            if leg['type'] == 'bull':
-                # Countertrend in a bull leg = bear bars and dojis
-                is_countertrend = c['bar_type'] in ('trend_bear', 'weak_bear', 'doji', 'reversal_bear')
-            else:
-                is_countertrend = c['bar_type'] in ('trend_bull', 'weak_bull', 'doji', 'reversal_bull')
-
-            if is_countertrend and not in_pb:
-                in_pb = True
-                pb_start = j
-            elif not is_countertrend and in_pb:
-                in_pb = False
-                pullback_runs.append({
-                    'type': 'L' if leg['type'] == 'bull' else 'H',
-                    'start_bar_idx': start + pb_start,
-                    'end_bar_idx': start + j - 1,
-                    'bar_count': j - pb_start,
-                    'bar_types': list(set(c2['bar_type']
-                                        for c2 in leg_cls[pb_start:j])),
-                })
-
-        # Handle pullback still in progress at leg end
-        if in_pb:
-            pullback_runs.append({
-                'type': 'L' if leg['type'] == 'bull' else 'H',
-                'start_bar_idx': start + pb_start,
-                'end_bar_idx': end,
-                'bar_count': len(leg_cls) - pb_start,
-                'bar_types': list(set(c2['bar_type']
-                                    for c2 in leg_cls[pb_start:])),
-                'in_progress': True,
-            })
+        for j in range(1, len(leg_bars)):
+            bar_idx = start + j
+            if leg['type'] == 'bear':
+                # H counting: bar's high > prior bar's high
+                if leg_bars[j]['high'] > leg_bars[j - 1]['high']:
+                    bounce_count += 1
+                    bounce_details.append({
+                        'label': f'H{bounce_count}',
+                        'bar_idx': bar_idx,
+                        'high': leg_bars[j]['high'],
+                    })
+            else:  # bull leg
+                # L counting: bar's low < prior bar's low
+                if leg_bars[j]['low'] < leg_bars[j - 1]['low']:
+                    bounce_count += 1
+                    bounce_details.append({
+                        'label': f'L{bounce_count}',
+                        'bar_idx': bar_idx,
+                        'low': leg_bars[j]['low'],
+                    })
 
         leg_with_pb = {**leg}
-        leg_with_pb['pullbacks'] = []
-        for idx, pr in enumerate(pullback_runs):
-            pb_label = f"{pr['type']}{idx + 1}"
-            leg_with_pb['pullbacks'].append({
-                'label': pb_label,
-                'start_bar': pr['start_bar_idx'],
-                'end_bar': pr['end_bar_idx'],
-                'bar_count': pr['bar_count'],
-                'in_progress': pr.get('in_progress', False),
-            })
-
-        # Count H/L totals from this leg
-        h_count = sum(1 for pb in leg_with_pb['pullbacks'] if pb['label'].startswith('H'))
-        l_count = sum(1 for pb in leg_with_pb['pullbacks'] if pb['label'].startswith('L'))
-
+        leg_with_pb['pullbacks'] = bounce_details
+        h_count = sum(1 for pb in bounce_details if pb['label'].startswith('H'))
+        l_count = sum(1 for pb in bounce_details if pb['label'].startswith('L'))
         leg_with_pb['counts'] = {'H': h_count, 'L': l_count}
         legs_with_pullbacks.append(leg_with_pb)
 
@@ -754,40 +732,29 @@ def compute_pullbacks(bars: list, classified: list,
 
 
 def _bar_scan_pullbacks(bars, classified, trend_dir):
-    """Fallback: scan last 20 bars backward counting distinct pullback legs."""
+    """Fallback: scan last 20 bars counting micro-bounce bars.
+
+    H counting (bull trend): bars with higher highs (bounce bars in correction).
+    L counting (bear trend): bars with lower lows (dip bars in correction).
+    """
+    bull = trend_dir == 'bull_trend'
+    start = max(0, len(bars) - 20)
+    bars_slice = bars[start:]
+
     h_count = 0
     l_count = 0
-    leg_dir = None
-    bull = trend_dir == 'bull_trend'
-    in_countertrend_run = False
 
-    start = max(0, len(classified) - 20)
-    cls_slice = classified[start:]
-
-    for i in range(len(cls_slice) - 1, 0, -1):
-        ct = cls_slice[i]
-        if leg_dir is None:
-            ct_simple = 'bull' if ct['close_position'] > 0.5 else 'bear' if ct['close_position'] < 0.5 else 'neutral'
-            leg_dir = 'up' if (bull and ct_simple != 'bear') or (not bull and ct_simple == 'bear') else 'down'
-
-        is_counter = False
-        if leg_dir == 'up':
-            is_counter = ct['bar_type'] in ('weak_bear', 'trend_bear', 'doji', 'reversal_bear')
-        else:
-            is_counter = ct['bar_type'] in ('weak_bull', 'trend_bull', 'doji', 'reversal_bull')
-
-        if is_counter and not in_countertrend_run:
-            # Start of a new pullback leg
-            in_countertrend_run = True
-            if leg_dir == 'up':
-                l_count += 1
-            else:
+    for i in range(1, len(bars_slice)):
+        if bull:
+            # Bull trend: count H (bars with higher highs — bounce bars in correction)
+            if bars_slice[i]['high'] > bars_slice[i - 1]['high']:
                 h_count += 1
-        elif not is_counter and in_countertrend_run:
-            # End of current pullback leg
-            in_countertrend_run = False
+        else:
+            # Bear trend: count L (bars with lower lows — dip bars in correction)
+            if bars_slice[i]['low'] < bars_slice[i - 1]['low']:
+                l_count += 1
 
-    return {'H': h_count, 'L': l_count, 'leg_direction': 'up' if leg_dir == 'up' else 'down',
+    return {'H': h_count, 'L': l_count, 'leg_direction': 'up' if bull else 'down',
             'note': 'fallback_bar_scan'}
 
 
